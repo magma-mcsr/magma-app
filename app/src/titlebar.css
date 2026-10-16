@@ -1,0 +1,213 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0c0c0d;
+  color: #d9d9de;
+  user-select: none;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  border-bottom: 1px solid #1f2024;
+  box-sizing: border-box;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 0 10px;
+  font-weight: 600;
+  color: #f2f2f4;
+}
+
+.logo {
+  width: 18px;
+  height: 18px;
+}
+
+.nav {
+  display: flex;
+  gap: 2px;
+}
+
+button {
+  border: none;
+  background: none;
+  color: inherit;
+  padding: 0;
+  cursor: default;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: #a1a2a8;
+}
+
+.icon:hover {
+  background: #1f2024;
+  color: #f2f2f4;
+}
+
+.icon svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.section {
+  padding-left: 10px;
+  color: #8b8d94;
+  white-space: nowrap;
+}
+
+.spacer {
+  flex: 1;
+  align-self: stretch;
+}
+
+/* Sync status pill: status and entry to the settings panel in one element. */
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  margin-right: 8px;
+  padding: 0 11px;
+  border: 1px solid #26272b;
+  border-radius: 999px;
+  color: #a1a2a8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pill:hover,
+.pill.open {
+  background: #1a1b1e;
+  color: #f2f2f4;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5c5e66;
+}
+
+.pill[data-state="ready"] .dot {
+  background: #4caf7a;
+}
+
+.pill[data-state="paused"] .dot {
+  background: #8b8d94;
+}
+
+/* Checking or downloading. */
+.pill[data-state="busy"] .dot {
+  background: #5aa9f0;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* Some replays will expire before they can be downloaded. */
+.pill[data-state="warning"] {
+  border-color: #e0b34155;
+  color: #f0cf7a;
+}
+
+.pill[data-state="warning"] .dot {
+  background: #e0b341;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* Needs the user's attention: tinted with the brand orange. */
+.pill[data-state="setup"] {
+  border-color: #f0743a66;
+  color: #f7a77d;
+}
+
+.pill[data-state="setup"] .dot {
+  background: #f0743a;
+}
+
+.window {
+  display: flex;
+  align-self: stretch;
+  padding-right: 4px;
+}
+
+/* The button is the full-height hit area; the rounded box inside is what you see.
+   The last button's hit area reaches the window's right edge, so flinging the mouse
+   to the top-right corner of a maximized window still hits Close. */
+.win {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  color: #a1a2a8;
+}
+
+.win.close {
+  width: 38px;
+  margin-right: -4px;
+  padding-right: 4px;
+}
+
+.win .box {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+.win:hover .box {
+  background: #1f2024;
+  color: #f2f2f4;
+}
+
+.win.close:hover .box {
+  background: #dc3d3d;
+  color: #fff;
+}
+
+.win svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.when-maximized,
+.maximized .when-normal {
+  display: none;
+}
+
+.maximized .when-maximized {
+  display: block;
+}

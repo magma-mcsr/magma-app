@@ -1,0 +1,28 @@
+[package]
+name = "magma-app"
+version = "0.1.0"
+description = "Magma desktop companion"
+license = "GPL-3.0-only"
+edition.workspace = true
+
+[lib]
+# The `_lib` suffix avoids a name clash with the binary on Windows (cargo#8519).
+name = "magma_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["unstable", "tray-icon"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.13", default-features = false, features = ["native-tls", "json", "gzip", "http2", "charset"] }
+tokio = { version = "1", features = ["time", "sync"] }
+sha2 = "0.11"
+hex = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+

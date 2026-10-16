@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Magma MCSR</title>
+  </head>
+  <body>
+    <div class="bar" id="bar">
+      <div class="brand">
+        <img src="/magma-logo.svg" alt="" class="logo" />
+        <span>Magma MCSR</span>
+      </div>
+      <div class="nav">
+        <button class="icon" data-action="back" aria-label="Back">
+          <svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" /></svg>
+        </button>
+        <button class="icon" data-action="forward" aria-label="Forward">
+          <svg viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" /></svg>
+        </button>
+        <button class="icon" data-action="reload" aria-label="Reload">
+          <svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.5-3.55M13 2.5v3h-3" /></svg>
+        </button>
+      </div>
+      <div class="section" id="section"></div>
+      <div class="spacer"></div>
+      <button class="pill" id="pill" data-action="panel" aria-label="Replay sync settings">
+        <span class="dot"></span><span id="pill-label">Replay sync</span>
+      </button>
+      <div class="window">
+        <button class="win" data-action="minimize" aria-label="Minimize">
+          <span class="box"><svg viewBox="0 0 16 16"><path d="M3.5 8h9" /></svg></span>
+        </button>
+        <button class="win" data-action="maximize" aria-label="Maximize" id="maximize">
+          <span class="box">
+            <svg viewBox="0 0 16 16" class="when-normal"><rect x="3.5" y="3.5" width="9" height="9" rx="1.5" /></svg>
+            <svg viewBox="0 0 16 16" class="when-maximized">
+              <rect x="3.5" y="5.5" width="7" height="7" rx="1.5" />
+              <path d="M5.5 3.5h5a2 2 0 0 1 2 2v5" />
+            </svg>
+          </span>
+        </button>
+        <button class="win close" data-action="close" aria-label="Close">
+          <span class="box"><svg viewBox="0 0 16 16"><path d="m4.5 4.5 7 7m0-7-7 7" /></svg></span>
+        </button>
+      </div>
+    </div>
+    <script type="module" src="/src/titlebar.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Only the local title bar and settings panel get IPC. The website webview gets nothing.",
+  "webviews": [
+    "titlebar",
+    "panel"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}

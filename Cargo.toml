@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["app/src-tauri"]
+
+[workspace.package]
+edition = "2021"
+
+# Size-oriented release settings for the desktop app (see tauri.app/concept/size).
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

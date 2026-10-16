@@ -1,0 +1,377 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  --bg: #121214;
+  --line: #222328;
+  --text: #e7e7ea;
+  --muted: #8b8d94;
+  --faint: #5c5e66;
+  --accent: #f0743a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  border-left: 1px solid var(--line);
+}
+
+/* Title, status, master switch and close button on one line. */
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px 4px 16px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.close,
+.remove {
+  border: none;
+  background: none;
+  color: var(--muted);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+}
+
+.close:hover,
+.remove:hover {
+  background: #1f2024;
+  color: var(--text);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+
+/* Groups are separated by space, not lines. */
+section {
+  margin-top: 24px;
+}
+
+h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Players and settings are different kinds of things, so they get a line between them. */
+.divided {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.tip {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  color: var(--faint);
+  outline: none;
+}
+
+.tip svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.tip:hover,
+.tip:focus {
+  color: var(--text);
+}
+
+.bubble {
+  display: none;
+  position: absolute;
+  top: 18px;
+  left: -8px;
+  z-index: 10;
+  width: 230px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f2f2f4;
+  color: #18191c;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: 1.45;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+}
+
+.tip:hover .bubble,
+.tip:focus .bubble,
+.tip:focus-within .bubble {
+  display: block;
+}
+
+.bubble.short {
+  width: auto;
+  white-space: nowrap;
+  top: 28px;
+  left: 0;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 4px;
+  border-radius: 6px;
+}
+
+/* The row being dragged stays in place, faded, so you can see where it came from. */
+.row.dragging {
+  opacity: 0.35;
+}
+
+/* Insertion line where the row will land. */
+.row.drop-above::before,
+.row.drop-below::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.row.drop-above::before {
+  top: -1px;
+}
+
+.row.drop-below::after {
+  bottom: -1px;
+}
+
+.row[draggable="true"]:hover {
+  background: #18191c;
+}
+
+.handle {
+  width: 12px;
+  color: var(--faint);
+  cursor: grab;
+  text-align: center;
+}
+
+.avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+
+.avatar.fallback {
+  display: grid;
+  place-items: center;
+  background: #26272b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.name {
+  flex: 1;
+}
+
+
+.remove {
+  font-size: 11px;
+}
+
+.lookup {
+  margin-top: 6px;
+}
+
+.lookup input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0d0d0f;
+}
+
+.lookup input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.error {
+  margin-top: 6px;
+  color: #f2b8b5;
+  font-size: 12px;
+}
+
+/* Axis label instead of an instruction sentence (see magma_design 2.4). */
+/* Every toggle is the same kind of row, whatever it controls. */
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 36px;
+}
+
+/* Details that belong to the setting above, indented under it. */
+.sub {
+  margin: 0 0 8px 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+
+/* [folder button] path */
+.folder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: -6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.path {
+  word-break: break-all;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+}
+
+.icon-button:hover {
+  background: #1f2024;
+  color: var(--text);
+}
+
+.icon-button svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.example {
+  margin: 0 0 8px 26px;
+  color: var(--faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.toggle {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border: none;
+  border-radius: 999px;
+  background: #2a2b30;
+  padding: 0;
+}
+
+.toggle span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #c9cacf;
+  transition: transform 0.15s;
+}
+
+.toggle.on {
+  background: var(--accent);
+}
+
+.toggle.on span {
+  transform: translateX(14px);
+  background: #fff;
+}
+
+.link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* First-run explanation, shown only while the player list is empty. */
+.notice {
+  margin: 0 0 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* The only divider: it separates the settings from the fine print. */
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--faint);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.version {
+  white-space: nowrap;
+}

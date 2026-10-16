@@ -1,8 +1,8 @@
-//! Client for the Magma replay upload API (see the upload API spec in the Magma repo).
+//! Client for the Magma replay upload API (api.magmamcsr.com).
 //!
 //! Two endpoints:
-//! - `HEAD /replays/{matchId}`: 200 when Magma already has the match
-//! - `POST /replays`: the original .rrf bytes, unchanged
+//! - `HEAD /api/mcsr-ranked/replays/{matchId}`: 200 when Magma already has the match
+//! - `POST /api/mcsr-ranked/replays`: the original .rrf bytes, unchanged
 
 use std::time::Duration;
 
@@ -47,7 +47,7 @@ impl Uploader {
     /// Whether Magma already has this match. Any error counts as "no", so the
     /// download goes ahead as usual.
     pub async fn has(&self, match_id: i64) -> bool {
-        match self.http.head(format!("{}/replays/{match_id}", self.base)).send().await {
+        match self.http.head(format!("{}/api/mcsr-ranked/replays/{match_id}", self.base)).send().await {
             Ok(res) => res.status() == reqwest::StatusCode::OK,
             Err(_) => false,
         }
@@ -57,7 +57,7 @@ impl Uploader {
         let sha = hex::encode(Sha256::digest(&bytes));
         let res = self
             .http
-            .post(format!("{}/replays", self.base))
+            .post(format!("{}/api/mcsr-ranked/replays", self.base))
             .header("Content-Type", "application/octet-stream")
             .header("X-Match-Id", match_id.to_string())
             .header("X-Content-SHA256", sha)

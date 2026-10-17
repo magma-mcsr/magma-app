@@ -1,0 +1,43 @@
+# Builds the Windows installer from this repository, so anyone can check that a
+# release was produced from the public source.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install frontend dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Build installer
+        working-directory: app
+        run: npx tauri build --bundles nsis
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: magma-mcsr-windows-${{ github.sha }}
+          path: target/release/bundle/nsis/*.exe
+          if-no-files-found: error

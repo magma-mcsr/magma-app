@@ -49,6 +49,16 @@ invoke<SyncStatus>("sync_status").then(showStatus).catch(console.error);
 listen<SyncStatus>("sync-status", ({ payload }) => showStatus(payload));
 listen<boolean>("panel-open", ({ payload }) => pill.classList.toggle("open", payload));
 
+// A downloaded update shows an "Update" button; clicking it restarts into the new version.
+type UpdateStatus = { ready: string | null };
+const updateButton = document.getElementById("update") as HTMLButtonElement;
+const showUpdate = (u: UpdateStatus) => {
+  updateButton.hidden = !u.ready;
+  updateButton.setAttribute("aria-label", u.ready ? `Restart to update to ${u.ready}` : "Update");
+};
+invoke<UpdateStatus>("update_status").then(showUpdate).catch(console.error);
+listen<UpdateStatus>("update-status", ({ payload }) => showUpdate(payload));
+
 // Swap the maximize icon for a restore icon while the window is maximized.
 listen<boolean>("window-maximized", ({ payload }) => {
   document.getElementById("maximize")!.classList.toggle("maximized", payload);

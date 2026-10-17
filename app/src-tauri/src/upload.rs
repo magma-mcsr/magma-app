@@ -24,6 +24,14 @@ pub enum Outcome {
     Rejected(String),
     /// Try again later.
     Retry { after: Duration, reason: String },
+    /// The server no longer accepts this app version (HTTP 426). Keep the file and update.
+    UpdateRequired,
+}
+
+pub enum Lookup {
+    Stored,
+    Missing,
+    UpdateRequired,
 }
 
 pub struct Uploader {
@@ -41,12 +49,13 @@ impl Uploader {
         Uploader { http, base: base_url() }
     }
 
-    /// Whether Magma already has this match. Any error counts as "no", so the
+    /// Whether Magma already has this match. Any error counts as "missing", so the
     /// download goes ahead as usual.
-    pub async fn has(&self, match_id: i64) -> bool {
+    pub async fn has(&self, match_id: i64) -> Lookup {
         match self.http.head(format!("{}/api/mcsr-ranked/replays/{match_id}", self.base)).send().await {
-            Ok(res) => res.status() == reqwest::StatusCode::OK,
-            Err(_) => false,
+            Ok(res) if res.status() == reqwest::StatusCode::OK => Lookup::Stored,
+            Ok(res) if res.status() == reqwest::StatusCode::UPGRADE_REQUIRED => Lookup::UpdateRequired,
+            _ => Lookup::Missing,
         }
     }
 
@@ -68,6 +77,9 @@ impl Uploader {
         let status = res.status();
         if status.is_success() {
             return Outcome::Accepted;
+        }
+        if status == reqwest::StatusCode::UPGRADE_REQUIRED {
+            return Outcome::UpdateRequired;
         }
         if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
             let after = res

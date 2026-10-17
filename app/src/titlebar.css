@@ -84,6 +84,27 @@ button {
   align-self: stretch;
 }
 
+/* A downloaded update: one click restarts into the new version. */
+.update {
+  height: 24px;
+  margin-right: 6px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: #f0743a;
+  color: #1a0d06;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.update:hover {
+  background: #f48a57;
+}
+
+.update[hidden] {
+  display: none;
+}
+
 /* Sync status pill: status and entry to the settings panel in one element. */
 .pill {
   display: flex;

@@ -18,7 +18,8 @@ use tokio::sync::Notify;
 
 use crate::mcsr::{Client, MatchSummary};
 use crate::settings::{Store, TrackedPlayer};
-use crate::upload::{Outcome, Uploader};
+use crate::update::Updates;
+use crate::upload::{Lookup, Outcome, Uploader};
 
 /// Official replays are deleted after 7 days; leave an hour of margin.
 const RETENTION_SECS: i64 = 7 * 24 * 3600 - 3600;
@@ -30,6 +31,8 @@ const JOURNAL_KEEP_SECS: i64 = 14 * 24 * 3600;
 /// The server accepts 10 uploads per minute per IP. A backlog (after an outage) is sent
 /// no faster than this so it never hits that limit.
 const UPLOAD_SPACING: Duration = Duration::from_secs(7);
+/// While the server refuses this app version, ask again this often.
+const UPDATE_RECHECK: Duration = Duration::from_secs(15 * 60);
 
 #[derive(Clone, Copy, PartialEq, Default)]
 pub enum Phase {
@@ -47,6 +50,8 @@ pub struct Live {
     pub total: usize,
     pub expiring: usize,
     pub pending_uploads: usize,
+    /// The server no longer accepts this app version; nothing syncs until it updates.
+    pub update_required: bool,
 }
 
 pub struct Engine {
@@ -68,7 +73,7 @@ impl Engine {
         self.live.lock().expect("live lock").clone()
     }
 
-    fn set(&self, app: &AppHandle, f: impl FnOnce(&mut Live)) {
+    pub fn set(&self, app: &AppHandle, f: impl FnOnce(&mut Live)) {
         f(&mut self.live.lock().expect("live lock"));
         crate::shell::broadcast_status(app, &app.state::<Store>().get());
     }
@@ -148,6 +153,18 @@ pub async fn run(app: AppHandle) {
         let settings = app.state::<Store>().get();
         engine.set(&app, |l| l.pending_uploads = count_pending(&pending_dir));
 
+        // Waiting for an update the server requires. Ask again now and then, in case the
+        // server lowers its minimum version (for example after a mistake).
+        if engine.live().update_required {
+            engine.set(&app, |l| l.phase = Phase::Idle);
+            let _ = tokio::time::timeout(UPDATE_RECHECK, engine.wake.notified()).await;
+            if !matches!(uploader.has(0).await, Lookup::UpdateRequired) {
+                engine.set(&app, |l| l.update_required = false);
+            }
+            continue;
+        }
+
+        // Paused or nothing to sync.
         if settings.paused || settings.players.is_empty() {
             engine.set(&app, |l| l.phase = Phase::Idle);
             let _ = tokio::time::timeout(Duration::from_secs(60), engine.wake.notified()).await;
@@ -191,7 +208,7 @@ pub async fn run(app: AppHandle) {
         // 2. Download one at a time.
         for (k, (_, m)) in queue.iter().enumerate() {
             let settings = app.state::<Store>().get();
-            if settings.paused || settings.players.is_empty() {
+            if settings.paused || settings.players.is_empty() || engine.live().update_required {
                 break;
             }
             engine.set(&app, |l| {
@@ -199,9 +216,18 @@ pub async fn run(app: AppHandle) {
                 l.done = k;
             });
             // Magma already has it and no local copy is wanted: nothing to do.
-            if !settings.keep_copy && uploader.has(m.id).await {
-                journal.mark(&data_dir, m.id);
-                continue;
+            if !settings.keep_copy {
+                match uploader.has(m.id).await {
+                    Lookup::Stored => {
+                        journal.mark(&data_dir, m.id);
+                        continue;
+                    }
+                    Lookup::UpdateRequired => {
+                        app.state::<Updates>().require(&app);
+                        break;
+                    }
+                    Lookup::Missing => {}
+                }
             }
             match client.download_replay(m.id, m.replay_exists).await {
                 Ok(bytes) => {
@@ -260,6 +286,10 @@ async fn flush_uploads(app: &AppHandle, uploader: &Uploader, dir: &Path, blocked
             Outcome::Rejected(why) => {
                 eprintln!("[sync] upload {match_id} rejected: {why}");
                 let _ = std::fs::remove_file(&path);
+            }
+            Outcome::UpdateRequired => {
+                app.state::<Updates>().require(app);
+                break;
             }
             Outcome::Retry { after, reason } => {
                 eprintln!("[sync] upload paused for {}s: {reason}", after.as_secs());

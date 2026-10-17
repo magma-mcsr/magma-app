@@ -3,6 +3,7 @@ mod panel;
 mod settings;
 mod shell;
 mod sync;
+mod update;
 mod upload;
 
 use tauri::Manager;
@@ -14,6 +15,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // Launched at login with --background: start hidden in the tray.
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
@@ -22,16 +24,19 @@ pub fn run() {
         .manage(Client::new())
         .manage(shell::PanelState::default())
         .manage(sync::Engine::new())
+        .manage(update::Updates::new())
         .setup(|app| {
             let dir = app.path().app_config_dir()?;
             app.manage(settings::Store::load(dir));
             shell::build(app)?;
             tauri::async_runtime::spawn(sync::run(app.handle().clone()));
+            tauri::async_runtime::spawn(update::run(app.handle().clone()));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             shell::titlebar,
             shell::sync_status,
+            shell::update_status,
             panel::panel_init,
             panel::lookup_player,
             panel::add_player,

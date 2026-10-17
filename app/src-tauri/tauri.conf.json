@@ -17,7 +17,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -25,5 +27,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDRBNzI5Mzc2MUYyQkQxM0IKUldRNzBTc2ZkcE55U3JzZVRkZFA3c2pHUmRiQWZBMEZtRDBaU3ZPanViRFg4Y3pjSTJkY3phUmYK",
+      "endpoints": [
+        "https://github.com/magma-mcsr/magma-app/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

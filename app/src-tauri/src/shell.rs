@@ -170,6 +170,9 @@ pub fn status_for(s: &Settings, live: &Live) -> SyncStatus {
     if s.players.is_empty() {
         return status("setup", "Set up replay sync".into());
     }
+    if live.update_required {
+        return status("warning", "Update required".into());
+    }
     if s.paused {
         return status("paused", "Paused".into());
     }
@@ -251,9 +254,19 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
         },
         "close" => window.close(),
         "drag" => window.start_dragging(),
+        "update" => return crate::update::install_ready(app),
         _ => return Err(format!("unknown action {action}")),
     };
     result.map_err(|e| e.to_string())
+}
+
+/// Downloaded update waiting to be installed, for the title bar when it first loads.
+#[tauri::command]
+pub fn update_status(webview: Webview) -> Result<crate::update::UpdateStatus, String> {
+    if webview.label() != TITLEBAR_LABEL {
+        return Err("not allowed".into());
+    }
+    Ok(webview.app_handle().state::<crate::update::Updates>().status())
 }
 
 /// Current sync status, for the title bar and panel when they first load.

@@ -8,16 +8,13 @@ use std::time::Duration;
 
 use sha2::{Digest, Sha256};
 
-/// Debug builds talk to a local test server; release builds to production.
+/// Production by default. Set `MAGMA_UPLOAD_URL` (e.g. `http://127.0.0.1:3050`)
+/// to test against a local server.
 pub fn base_url() -> String {
     if let Ok(url) = std::env::var("MAGMA_UPLOAD_URL") {
         return url.trim_end_matches('/').to_owned();
     }
-    if cfg!(debug_assertions) {
-        "http://127.0.0.1:3050".into()
-    } else {
-        "https://api.magmamcsr.com".into()
-    }
+    "https://api.magmamcsr.com".into()
 }
 
 pub enum Outcome {

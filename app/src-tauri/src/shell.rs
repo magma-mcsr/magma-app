@@ -3,8 +3,13 @@
 //!
 //! The website is loaded as a separate webview with no IPC access. Only the local pages
 //! (title bar and panel) can call native commands.
+//!
+//! Closing the window to the tray destroys it, website included, so an app that only
+//! syncs in the background does not keep a browser engine in memory. Reopening rebuilds
+//! the window on the last page, with the same size and position.
 
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use std::time::Duration;
 
 use serde::Serialize;
@@ -29,15 +34,49 @@ const SITE_LABEL: &str = "site";
 #[derive(Default)]
 pub struct PanelState(AtomicBool);
 
-pub fn build(app: &mut App) -> tauri::Result<()> {
+/// What to restore when the window is opened again after being closed to the tray.
+#[derive(Default)]
+pub struct WindowMemory(Mutex<Remembered>);
+
+#[derive(Default, Clone)]
+struct Remembered {
+    /// Last page on the Magma website.
+    url: Option<String>,
+    position: Option<PhysicalPosition<i32>>,
+    size: Option<PhysicalSize<u32>>,
+    maximized: bool,
+}
+
+pub fn setup(app: &mut App) -> tauri::Result<()> {
+    build_tray(app)?;
+    // Started at login: stay in the tray. The window, and the website in it, is only
+    // created when the user opens it.
+    if !std::env::args().any(|a| a == "--background") {
+        open_main(app.handle())?;
+    }
+    Ok(())
+}
+
+fn open_main(app: &AppHandle) -> tauri::Result<()> {
+    let remembered = app.state::<WindowMemory>().0.lock().expect("window memory").clone();
+    let site_url = remembered.url.as_deref().and_then(|u| u.parse().ok()).unwrap_or_else(|| SITE_URL.parse().expect("valid URL"));
+
     let window = WindowBuilder::new(app, "main")
         .title("Magma MCSR")
         .inner_size(1280.0, 800.0)
         .min_inner_size(480.0, 500.0)
         .decorations(false)
-        // Started at login: stay in the tray until the user opens the window.
-        .visible(!std::env::args().any(|a| a == "--background"))
+        .visible(false)
         .build()?;
+    if let Some(size) = remembered.size {
+        let _ = window.set_size(size);
+    }
+    if let Some(position) = remembered.position.filter(|p| on_a_monitor(app, *p)) {
+        let _ = window.set_position(position);
+    }
+    if remembered.maximized {
+        let _ = window.maximize();
+    }
 
     let size = window.inner_size()?.to_logical::<f64>(window.scale_factor()?);
     let content_h = (size.height - TITLEBAR_HEIGHT).max(0.0);
@@ -47,7 +86,7 @@ pub fn build(app: &mut App) -> tauri::Result<()> {
         LogicalSize::new(size.width, TITLEBAR_HEIGHT),
     )?;
     let site = window.add_child(
-        WebviewBuilder::new(SITE_LABEL, WebviewUrl::External(SITE_URL.parse().expect("valid URL"))),
+        WebviewBuilder::new(SITE_LABEL, WebviewUrl::External(site_url)),
         LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
         LogicalSize::new(size.width, content_h),
     )?;
@@ -61,7 +100,7 @@ pub fn build(app: &mut App) -> tauri::Result<()> {
     )?;
     panel.hide()?;
 
-    let handle = app.handle().clone();
+    let handle = app.clone();
     window.on_window_event(move |event| match event {
         WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
             if let Some(w) = handle.get_window("main") {
@@ -69,25 +108,44 @@ pub fn build(app: &mut App) -> tauri::Result<()> {
                 let _ = handle.emit_to(TITLEBAR_LABEL, "window-maximized", w.is_maximized().unwrap_or(false));
             }
         }
-        WindowEvent::CloseRequested { api, .. } => {
-            if handle.state::<Store>().get().run_in_tray {
-                api.prevent_close();
-                if let Some(w) = handle.get_window("main") {
-                    let _ = w.hide();
-                }
+        // The window is destroyed; sync keeps running (see the exit handling in lib.rs).
+        WindowEvent::CloseRequested { .. } => {
+            if let Some(w) = handle.get_window("main") {
+                remember_geometry(&handle, &w);
             }
+            handle.state::<PanelState>().0.store(false, Ordering::Relaxed);
         }
         _ => {}
     });
 
-    build_tray(app)?;
-    watch_location(app.handle().clone(), site);
+    watch_location(app.clone(), site);
+    window.show()?;
+    let _ = window.set_focus();
 
     // First run: open the panel so the user can set up sync.
     if app.state::<Store>().get().players.is_empty() {
-        set_panel(app.handle(), true);
+        set_panel(app, true);
     }
     Ok(())
+}
+
+fn remember_geometry(app: &AppHandle, window: &Window) {
+    let memory = app.state::<WindowMemory>();
+    let mut m = memory.0.lock().expect("window memory");
+    m.maximized = window.is_maximized().unwrap_or(false);
+    // A maximized or minimized window reports the wrong size; keep the last normal one.
+    if !m.maximized && !window.is_minimized().unwrap_or(false) {
+        m.size = window.inner_size().ok();
+        m.position = window.outer_position().ok();
+    }
+}
+
+/// A saved position is only used if it is still on a connected monitor.
+fn on_a_monitor(app: &AppHandle, p: PhysicalPosition<i32>) -> bool {
+    app.available_monitors().unwrap_or_default().iter().any(|m| {
+        let (pos, size) = (m.position(), m.size());
+        p.x >= pos.x && p.y >= pos.y && p.x < pos.x + size.width as i32 && p.y < pos.y + size.height as i32
+    })
 }
 
 /// Title bar on top, website below, panel over the website's right edge.
@@ -130,6 +188,8 @@ fn show_main(app: &AppHandle) {
         let _ = w.show();
         let _ = w.unminimize();
         let _ = w.set_focus();
+    } else if let Err(e) = open_main(app) {
+        eprintln!("[shell] could not open the window: {e}");
     }
 }
 
@@ -217,6 +277,9 @@ fn watch_location(app: AppHandle, site: Webview) {
             }
             last = current;
             let host = url.host_str().unwrap_or_default().to_owned();
+            if host.ends_with("magmamcsr.com") {
+                app.state::<WindowMemory>().0.lock().expect("window memory").url = Some(last.clone());
+            }
             let location = SiteLocation {
                 path: url.path().to_owned(),
                 external: !host.ends_with("magmamcsr.com"),

@@ -23,12 +23,13 @@ pub fn run() {
         ))
         .manage(Client::new())
         .manage(shell::PanelState::default())
+        .manage(shell::WindowMemory::default())
         .manage(sync::Engine::new())
         .manage(update::Updates::new())
         .setup(|app| {
             let dir = app.path().app_config_dir()?;
             app.manage(settings::Store::load(dir));
-            shell::build(app)?;
+            shell::setup(app)?;
             tauri::async_runtime::spawn(sync::run(app.handle().clone()));
             tauri::async_runtime::spawn(update::run(app.handle().clone()));
             Ok(())
@@ -50,6 +51,15 @@ pub fn run() {
             panel::close_panel,
             panel::open_link,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Closing the window does not quit when the app runs in the tray: sync keeps
+            // going in the background. Quit from the tray menu passes an exit code.
+            if let tauri::RunEvent::ExitRequested { code: None, api, .. } = event {
+                if app.state::<settings::Store>().get().run_in_tray {
+                    api.prevent_exit();
+                }
+            }
+        });
 }

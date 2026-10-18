@@ -34,6 +34,10 @@ const SITE_LABEL: &str = "site";
 #[derive(Default)]
 pub struct PanelState(AtomicBool);
 
+/// The last file the website downloaded, shown in the title bar until it is opened.
+#[derive(Default)]
+pub struct LastDownload(Mutex<Option<std::path::PathBuf>>);
+
 /// What to restore when the window is opened again after being closed to the tray.
 #[derive(Default)]
 pub struct WindowMemory(Mutex<Remembered>);
@@ -91,6 +95,7 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
         WebviewBuilder::new(SITE_LABEL, WebviewUrl::External(site_url))
             .disable_drag_drop_handler()
             .on_new_window(new_window_handler(app.clone()))
+            .on_download(download_handler(app.clone()))
             .on_navigation(navigation_handler(app.clone())),
         LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
         LogicalSize::new(size.width, content_h),
@@ -172,6 +177,20 @@ fn new_window_handler(app: AppHandle) -> impl Fn(tauri::Url, tauri::webview::New
             open_externally(&app, &url);
         }
         NewWindowResponse::Deny
+    }
+}
+
+/// Downloads from the website go to the usual Downloads folder. There is no browser
+/// download bar, so the title bar shows the finished file instead.
+fn download_handler(app: AppHandle) -> impl Fn(Webview, tauri::webview::DownloadEvent<'_>) -> bool + Send + Sync + 'static {
+    use tauri::webview::DownloadEvent;
+    move |_, event| {
+        if let DownloadEvent::Finished { path: Some(path), success: true, .. } = event {
+            let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            *app.state::<LastDownload>().0.lock().expect("last download") = Some(path);
+            let _ = app.emit_to(TITLEBAR_LABEL, "download-finished", name);
+        }
+        true
     }
 }
 
@@ -391,6 +410,13 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
         "close" => window.close(),
         "drag" => window.start_dragging(),
         "update" => return crate::update::install_ready(app),
+        "show-download" => {
+            let Some(path) = app.state::<LastDownload>().0.lock().expect("last download").clone() else {
+                return Ok(());
+            };
+            use tauri_plugin_opener::OpenerExt;
+            return app.opener().reveal_item_in_dir(path).map_err(|e| e.to_string());
+        }
         _ => return Err(format!("unknown action {action}")),
     };
     result.map_err(|e| e.to_string())

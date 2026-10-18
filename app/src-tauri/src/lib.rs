@@ -26,6 +26,7 @@ pub fn run() {
         .manage(Client::new())
         .manage(shell::PanelState::default())
         .manage(shell::WindowMemory::default())
+        .manage(shell::LastDownload::default())
         .manage(sync::Engine::new())
         .manage(update::Updates::new())
         .setup(|app| {

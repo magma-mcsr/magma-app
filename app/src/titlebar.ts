@@ -59,6 +59,18 @@ const showUpdate = (u: UpdateStatus) => {
 invoke<UpdateStatus>("update_status").then(showUpdate).catch(console.error);
 listen<UpdateStatus>("update-status", ({ payload }) => showUpdate(payload));
 
+// A file the website downloaded: shown for a few seconds, click opens its folder.
+const downloadButton = document.getElementById("download") as HTMLButtonElement;
+let downloadTimer: number | undefined;
+listen<string>("download-finished", ({ payload }) => {
+  document.getElementById("download-name")!.textContent = payload;
+  downloadButton.setAttribute("aria-label", `Downloaded ${payload}. Show in folder`);
+  downloadButton.hidden = false;
+  window.clearTimeout(downloadTimer);
+  downloadTimer = window.setTimeout(() => (downloadButton.hidden = true), 8000);
+});
+downloadButton.addEventListener("click", () => (downloadButton.hidden = true));
+
 // Swap the maximize icon for a restore icon while the window is maximized.
 listen<boolean>("window-maximized", ({ payload }) => {
   document.getElementById("maximize")!.classList.toggle("maximized", payload);

@@ -84,6 +84,37 @@ button {
   align-self: stretch;
 }
 
+/* A file the website just downloaded: click to show it in File Explorer. */
+.download {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  max-width: 280px;
+  margin-right: 6px;
+  padding: 0 11px;
+  border: 1px solid #26272b;
+  border-radius: 999px;
+  color: #a1a2a8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.download:hover {
+  background: #1a1b1e;
+  color: #f2f2f4;
+}
+
+.download-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f2f2f4;
+}
+
+.download[hidden] {
+  display: none;
+}
+
 /* A downloaded update: one click restarts into the new version. */
 .update {
   height: 24px;

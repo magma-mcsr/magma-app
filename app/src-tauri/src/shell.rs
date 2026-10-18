@@ -88,7 +88,10 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
     let site = window.add_child(
         // Let files dropped on the website reach the page itself (the Run Analyzer takes
         // dropped worlds), as in a browser. The app does nothing with dropped files.
-        WebviewBuilder::new(SITE_LABEL, WebviewUrl::External(site_url)).disable_drag_drop_handler(),
+        WebviewBuilder::new(SITE_LABEL, WebviewUrl::External(site_url))
+            .disable_drag_drop_handler()
+            .on_new_window(new_window_handler(app.clone()))
+            .on_navigation(navigation_handler(app.clone())),
         LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
         LogicalSize::new(size.width, content_h),
     )?;
@@ -150,9 +153,77 @@ fn on_a_monitor(app: &AppHandle, p: PhysicalPosition<i32>) -> bool {
     })
 }
 
+/// Links that open a new window or tab on the website:
+/// - other Magma pages open in this window, like a single-tab browser
+/// - small popup windows from Magma itself (sized with window.open features) stay popups
+/// - everything else opens in the user's default browser
+fn new_window_handler(app: AppHandle) -> impl Fn(tauri::Url, tauri::webview::NewWindowFeatures) -> tauri::webview::NewWindowResponse<tauri::Wry> + Send + 'static {
+    use tauri::webview::NewWindowResponse;
+    move |url, features| {
+        let magma = url.host_str().is_some_and(|h| h == "magmamcsr.com" || h.ends_with(".magmamcsr.com"));
+        if magma && features.size().is_some() {
+            return NewWindowResponse::Allow;
+        }
+        if magma {
+            if let Some(site) = app.get_webview(SITE_LABEL) {
+                let _ = site.navigate(url);
+            }
+        } else {
+            open_externally(&app, &url);
+        }
+        NewWindowResponse::Deny
+    }
+}
+
+/// Only these kinds of links are ever handed to the system. Anything else (file:, ms-*,
+/// custom app schemes) is ignored, so a link on the website can never open local files
+/// or launch programs.
+fn open_externally(app: &AppHandle, url: &tauri::Url) {
+    if !matches!(url.scheme(), "http" | "https" | "mailto") {
+        eprintln!("[shell] ignored link with scheme {}", url.scheme());
+        return;
+    }
+    use tauri_plugin_opener::OpenerExt;
+    if let Err(e) = app.opener().open_url(url.as_str(), None::<&str>) {
+        eprintln!("[shell] could not open {url}: {e}");
+    }
+}
+
+/// Links in the same window: web pages load as usual, mailto: opens the mail app.
+fn navigation_handler(app: AppHandle) -> impl Fn(&tauri::Url) -> bool + Send + 'static {
+    move |url| {
+        if matches!(url.scheme(), "http" | "https" | "about" | "data" | "blob") {
+            return true;
+        }
+        open_externally(&app, url);
+        false
+    }
+}
+
 /// Title bar on top, website below, panel over the website's right edge.
+/// While a video on the website is fullscreen, the website fills the whole window.
 fn layout(app: &AppHandle, window: &Window) {
     let (Ok(size), Ok(scale)) = (window.inner_size(), window.scale_factor()) else { return };
+    if window.is_fullscreen().unwrap_or(false) {
+        for label in [TITLEBAR_LABEL, PANEL_LABEL] {
+            if let Some(w) = app.get_webview(label) {
+                let _ = w.hide();
+            }
+        }
+        if let Some(site) = app.get_webview(SITE_LABEL) {
+            let _ = site.set_position(PhysicalPosition::new(0, 0));
+            let _ = site.set_size(size);
+        }
+        return;
+    }
+    if let Some(bar) = app.get_webview(TITLEBAR_LABEL) {
+        let _ = bar.show();
+    }
+    if app.state::<PanelState>().0.load(Ordering::Relaxed) {
+        if let Some(panel) = app.get_webview(PANEL_LABEL) {
+            let _ = panel.show();
+        }
+    }
     let bar_h = ((TITLEBAR_HEIGHT * scale).round() as u32).min(size.height);
     let content_h = size.height - bar_h;
     if let Some(bar) = app.get_webview(TITLEBAR_LABEL) {

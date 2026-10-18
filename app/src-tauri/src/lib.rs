@@ -14,7 +14,9 @@ use mcsr::Client;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_opener::init())
+        // No injected link handler: the website has no IPC access, and shell.rs decides
+        // where new-window links open.
+        .plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         // Launched at login with --background: start hidden in the tray.
         .plugin(tauri_plugin_autostart::init(

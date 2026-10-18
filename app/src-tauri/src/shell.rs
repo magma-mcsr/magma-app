@@ -86,7 +86,9 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
         LogicalSize::new(size.width, TITLEBAR_HEIGHT),
     )?;
     let site = window.add_child(
-        WebviewBuilder::new(SITE_LABEL, WebviewUrl::External(site_url)),
+        // Let files dropped on the website reach the page itself (the Run Analyzer takes
+        // dropped worlds), as in a browser. The app does nothing with dropped files.
+        WebviewBuilder::new(SITE_LABEL, WebviewUrl::External(site_url)).disable_drag_drop_handler(),
         LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
         LogicalSize::new(size.width, content_h),
     )?;

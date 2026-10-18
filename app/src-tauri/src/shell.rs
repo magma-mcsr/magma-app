@@ -118,6 +118,18 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
                 layout(&handle, &w);
                 let _ = handle.emit_to(TITLEBAR_LABEL, "window-maximized", w.is_maximized().unwrap_or(false));
             }
+            // Entering or leaving fullscreen resizes the window before the window reports
+            // its new fullscreen state, so lay out once more after it settles.
+            let later = handle.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(150));
+                let again = later.clone();
+                let _ = later.run_on_main_thread(move || {
+                    if let Some(w) = again.get_window("main") {
+                        layout(&again, &w);
+                    }
+                });
+            });
         }
         // The window is destroyed; sync keeps running (see the exit handling in lib.rs).
         WindowEvent::CloseRequested { .. } => {

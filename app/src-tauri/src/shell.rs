@@ -417,40 +417,46 @@ fn watch_location(app: AppHandle, site: Webview) {
     std::thread::spawn(move || {
         let mut last = String::new();
         let mut was_fullscreen = false;
-        // The window was maximized when a video went fullscreen; maximize it again after.
-        let mut remaximize = false;
+        // Placement of a window that was maximized when a video went fullscreen, put back
+        // when it leaves fullscreen.
+        let saved: std::sync::Arc<Mutex<Option<crate::placement::Placement>>> = Default::default();
+        let mut tick: u32 = 0;
         loop {
-            std::thread::sleep(Duration::from_millis(400));
-            let Ok(url) = site.url() else { break };
+            // Fullscreen is checked often so the switch looks immediate; the URL less often.
+            std::thread::sleep(Duration::from_millis(50));
+            tick = tick.wrapping_add(1);
 
             // A video on the website going fullscreen makes the window fullscreen, but a
             // maximized window stays clipped to the work area and reports no resize. Watch
             // the state here and fix the window up when it changes.
-            if let Some(w) = app.get_window("main") {
-                let fullscreen = w.is_fullscreen().unwrap_or(false);
-                if fullscreen != was_fullscreen {
-                    was_fullscreen = fullscreen;
-                    let restore = if fullscreen {
-                        remaximize = w.is_maximized().unwrap_or(false);
-                        remaximize
-                    } else {
-                        std::mem::take(&mut remaximize)
-                    };
-                    let handle = app.clone();
-                    let _ = app.run_on_main_thread(move || {
-                        let Some(w) = handle.get_window("main") else { return };
-                        if fullscreen && restore {
-                            let _ = w.set_fullscreen(false);
-                            let _ = w.unmaximize();
-                            let _ = w.set_fullscreen(true);
-                        } else if !fullscreen && restore {
-                            let _ = w.maximize();
+            let Some(w) = app.get_window("main") else { break };
+            let fullscreen = w.is_fullscreen().unwrap_or(false);
+            if fullscreen != was_fullscreen {
+                was_fullscreen = fullscreen;
+                let handle = app.clone();
+                let saved = saved.clone();
+                let _ = app.run_on_main_thread(move || {
+                    let Some(w) = handle.get_window("main") else { return };
+                    let mut saved = saved.lock().expect("placement");
+                    if fullscreen && w.is_maximized().unwrap_or(false) {
+                        // Un-maximize to a monitor-sized window first, so nothing visibly moves.
+                        *saved = crate::placement::expand_normal(&w);
+                        let _ = w.set_fullscreen(false);
+                        let _ = w.unmaximize();
+                        let _ = w.set_fullscreen(true);
+                    } else if !fullscreen {
+                        if let Some(p) = saved.take() {
+                            crate::placement::restore(&w, &p);
                         }
-                        layout(&handle, &w);
-                    });
-                }
+                    }
+                    layout(&handle, &w);
+                });
             }
 
+            if !tick.is_multiple_of(8) {
+                continue;
+            }
+            let Ok(url) = site.url() else { break };
             let current = url.as_str().to_owned();
             if current == last {
                 continue;

@@ -1,5 +1,6 @@
 mod mcsr;
 mod panel;
+mod placement;
 mod settings;
 mod shell;
 mod sync;

@@ -7,6 +7,16 @@ It shows the Magma website in its own window, and keeps your MCSR Ranked replays
 background: official replays are only kept for 7 days, so the app downloads them while they
 are still available and sends them to Magma for analysis.
 
+## Download
+
+Get the installer (`Magma.MCSR_<version>_x64-setup.exe`) from the
+[latest release](https://github.com/magma-mcsr/magma-app/releases/latest).
+
+- Windows only for now (Windows 10 and 11, 64-bit).
+- Windows may show "Windows protected your PC" because the installer is not code-signed yet.
+  Click "More info", then "Run anyway".
+- After that, the app keeps itself up to date.
+
 ## What it does
 
 - Downloads replays of the players **you** add, from the official public replay CDN.

@@ -96,6 +96,7 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
             .disable_drag_drop_handler()
             .on_new_window(new_window_handler(app.clone()))
             .on_download(download_handler(app.clone()))
+            .initialization_script(REMEMBER_POINTER_JS)
             .on_navigation(navigation_handler(app.clone())),
         LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
         LogicalSize::new(size.width, content_h),
@@ -179,6 +180,40 @@ fn new_window_handler(app: AppHandle) -> impl Fn(tauri::Url, tauri::webview::New
         NewWindowResponse::Deny
     }
 }
+
+/// Runs in the website: remembers only where the user last pressed, so a download can
+/// fly from there into the title bar. Nothing is sent anywhere.
+const REMEMBER_POINTER_JS: &str = r#"
+addEventListener("pointerdown", (e) => { window.__magmaLastPointer = { x: e.clientX, y: e.clientY }; }, true);
+"#;
+
+/// Runs in the website: a small tag with the file name flies from the last press up to
+/// the title bar, where the download notice is.
+const DOWNLOAD_FLY_JS: &str = r##"
+((targetX, name) => {
+  const from = window.__magmaLastPointer || { x: innerWidth / 2, y: innerHeight / 2 };
+  const tag = document.createElement("div");
+  tag.textContent = name;
+  Object.assign(tag.style, {
+    position: "fixed", left: from.x + "px", top: from.y + "px", zIndex: "2147483647",
+    pointerEvents: "none", padding: "4px 10px", borderRadius: "999px",
+    background: "#1a1b1e", border: "1px solid #3a3b40", color: "#f2f2f4",
+    font: "12px system-ui, sans-serif", whiteSpace: "nowrap", maxWidth: "200px",
+    overflow: "hidden", textOverflow: "ellipsis", boxShadow: "0 4px 16px rgba(0,0,0,.45)",
+  });
+  document.documentElement.appendChild(tag);
+  const dx = targetX - from.x, dy = -14 - from.y;
+  const at = (x, y, s) => "translate(calc(-50% + " + x + "px), calc(-50% + " + y + "px)) scale(" + s + ")";
+  tag.animate(
+    [
+      { transform: at(0, 0, 1), opacity: 1 },
+      { transform: at(dx * 0.45, dy * 0.45 - 60, 0.95), opacity: 1, offset: 0.45 },
+      { transform: at(dx, dy, 0.6), opacity: 0 },
+    ],
+    { duration: 550, easing: "cubic-bezier(.45,0,.25,1)" },
+  ).onfinish = () => tag.remove();
+})
+"##;
 
 /// Downloads from the website go to the usual Downloads folder. There is no browser
 /// download bar, so the title bar shows the finished file instead.
@@ -429,6 +464,17 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
         _ => return Err(format!("unknown action {action}")),
     };
     result.map_err(|e| e.to_string())
+}
+
+/// Fly a download tag across the website to the title bar notice at `x` (CSS pixels).
+#[tauri::command]
+pub fn download_fly(webview: Webview, x: f64, name: String) -> Result<(), String> {
+    if webview.label() != TITLEBAR_LABEL {
+        return Err("not allowed".into());
+    }
+    let site = webview.app_handle().get_webview(SITE_LABEL).ok_or("site webview missing")?;
+    let name = serde_json::to_string(&name).map_err(|e| e.to_string())?;
+    site.eval(format!("{DOWNLOAD_FLY_JS}({x}, {name})")).map_err(|e| e.to_string())
 }
 
 /// Downloaded update waiting to be installed, for the title bar when it first loads.

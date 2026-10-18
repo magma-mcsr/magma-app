@@ -115,14 +115,15 @@ button {
   display: none;
 }
 
-.download:not([hidden]) {
-  animation: download-in 180ms ease-out;
+/* The tag flying in from the website lands here. */
+.download.landed {
+  animation: download-land 260ms ease-out;
 }
 
-@keyframes download-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
+@keyframes download-land {
+  40% {
+    transform: scale(1.12);
+    border-color: #5aa9f0;
   }
 }
 

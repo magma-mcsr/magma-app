@@ -65,7 +65,9 @@ const downloadButton = document.getElementById("download") as HTMLButtonElement;
 const downloadLabel = document.getElementById("download-label")!;
 const downloadName = document.getElementById("download-name")!;
 // Most downloads finish instantly; keep "Downloading" up long enough to be seen.
-const MIN_BUSY_MS = 700;
+const MIN_BUSY_MS = 900;
+// How long the tag takes to fly from the website into this notice (DOWNLOAD_FLY_JS).
+const FLY_MS = 550;
 let downloadStarted = 0;
 let downloadTimer: number | undefined;
 listen<string>("download-started", ({ payload }) => {
@@ -76,6 +78,14 @@ listen<string>("download-started", ({ payload }) => {
   downloadName.textContent = payload;
   downloadButton.setAttribute("aria-label", `Downloading ${payload}`);
   downloadButton.hidden = false;
+  // Once laid out, send a tag flying here from where the user clicked on the website,
+  // and bump this notice when it arrives.
+  requestAnimationFrame(() => {
+    const rect = downloadButton.getBoundingClientRect();
+    invoke("download_fly", { x: rect.left + rect.width / 2, name: payload }).catch(console.error);
+    downloadButton.classList.remove("landed");
+    window.setTimeout(() => downloadButton.classList.add("landed"), FLY_MS - 60);
+  });
 });
 listen<{ name: string; success: boolean }>("download-finished", ({ payload }) => {
   const wait = Math.max(0, downloadStarted + MIN_BUSY_MS - Date.now());

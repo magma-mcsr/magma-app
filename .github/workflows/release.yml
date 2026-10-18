@@ -57,6 +57,7 @@ jobs:
 
             - Click `Magma-MCSR-Setup.exe` under Assets below, then run it.
             - Windows only for now (Windows 10 and 11, 64-bit).
+            - If your browser says the file "isn't commonly downloaded", choose Keep (in Edge: click "...", then Keep).
             - Windows may show "Windows protected your PC" because the installer is not code-signed yet. Click "More info", then "Run anyway".
             - After that, the app updates itself.
 

@@ -13,6 +13,7 @@ are still available and sends them to Magma for analysis.
 (latest version), or pick one from the [releases](https://github.com/magma-mcsr/magma-app/releases).
 
 - Windows only for now (Windows 10 and 11, 64-bit).
+- If your browser says the file "isn't commonly downloaded", choose Keep (in Edge: click "...", then Keep).
 - Windows may show "Windows protected your PC" because the installer is not code-signed yet.
   Click "More info", then "Run anyway".
 - After that, the app keeps itself up to date.

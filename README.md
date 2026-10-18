@@ -9,8 +9,8 @@ are still available and sends them to Magma for analysis.
 
 ## Download
 
-Get the installer (`Magma.MCSR_<version>_x64-setup.exe`) from the
-[latest release](https://github.com/magma-mcsr/magma-app/releases/latest).
+[Download the installer](https://github.com/magma-mcsr/magma-app/releases/latest/download/Magma-MCSR-Setup.exe)
+(latest version), or pick one from the [releases](https://github.com/magma-mcsr/magma-app/releases).
 
 - Windows only for now (Windows 10 and 11, 64-bit).
 - Windows may show "Windows protected your PC" because the installer is not code-signed yet.

@@ -40,6 +40,7 @@ jobs:
         run: npm ci
 
       - uses: tauri-apps/tauri-action@v1
+        id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Update signing key. Its public half is plugins.updater.pubkey in tauri.conf.json.
@@ -50,7 +51,23 @@ jobs:
           args: --bundles nsis --config src-tauri/tauri.release.conf.json
           tagName: ${{ github.ref_name }}
           releaseName: Magma MCSR ${{ github.ref_name }}
-          releaseBody: See the commits since the previous release.
+          releaseBody: "- **Download:** click `Magma-MCSR-Setup.exe` under Assets below, then run it."
           releaseDraft: true
           prerelease: false
           uploadUpdaterJson: true
+
+      # Same installer under a name that never changes, so
+      # releases/latest/download/Magma-MCSR-Setup.exe always points at the newest version.
+      - name: Upload installer with a stable name
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ steps.tauri.outputs.releaseId }}
+        run: |
+          installer=$(ls target/release/bundle/nsis/*_x64-setup.exe)
+          curl --fail -sS -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$installer" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=Magma-MCSR-Setup.exe" \
+            > /dev/null

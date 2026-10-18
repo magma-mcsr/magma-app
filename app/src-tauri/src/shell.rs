@@ -184,11 +184,20 @@ fn new_window_handler(app: AppHandle) -> impl Fn(tauri::Url, tauri::webview::New
 /// download bar, so the title bar shows the finished file instead.
 fn download_handler(app: AppHandle) -> impl Fn(Webview, tauri::webview::DownloadEvent<'_>) -> bool + Send + Sync + 'static {
     use tauri::webview::DownloadEvent;
+    let file_name = |p: &std::path::Path| p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
     move |_, event| {
-        if let DownloadEvent::Finished { path: Some(path), success: true, .. } = event {
-            let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            *app.state::<LastDownload>().0.lock().expect("last download") = Some(path);
-            let _ = app.emit_to(TITLEBAR_LABEL, "download-finished", name);
+        match event {
+            DownloadEvent::Requested { destination, .. } => {
+                let _ = app.emit_to(TITLEBAR_LABEL, "download-started", file_name(destination));
+            }
+            DownloadEvent::Finished { path, success, .. } => {
+                let name = path.as_deref().map(file_name).unwrap_or_default();
+                if success {
+                    *app.state::<LastDownload>().0.lock().expect("last download") = path;
+                }
+                let _ = app.emit_to(TITLEBAR_LABEL, "download-finished", serde_json::json!({ "name": name, "success": success }));
+            }
+            _ => {}
         }
         true
     }

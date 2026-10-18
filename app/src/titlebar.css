@@ -115,6 +115,30 @@ button {
   display: none;
 }
 
+.download:not([hidden]) {
+  animation: download-in 180ms ease-out;
+}
+
+@keyframes download-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.download[data-state="busy"] .dot {
+  background: #5aa9f0;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.download[data-state="done"] .dot {
+  background: #4caf7a;
+}
+
+.download[data-state="failed"] .dot {
+  background: #e0b341;
+}
+
 /* A downloaded update: one click restarts into the new version. */
 .update {
   height: 24px;

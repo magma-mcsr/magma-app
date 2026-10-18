@@ -59,15 +59,35 @@ const showUpdate = (u: UpdateStatus) => {
 invoke<UpdateStatus>("update_status").then(showUpdate).catch(console.error);
 listen<UpdateStatus>("update-status", ({ payload }) => showUpdate(payload));
 
-// A file the website downloaded: shown for a few seconds, click opens its folder.
+// A file the website downloads: "Downloading" while it saves, then "Downloaded" for a
+// few seconds. Clicking it shows the file in its folder.
 const downloadButton = document.getElementById("download") as HTMLButtonElement;
+const downloadLabel = document.getElementById("download-label")!;
+const downloadName = document.getElementById("download-name")!;
+// Most downloads finish instantly; keep "Downloading" up long enough to be seen.
+const MIN_BUSY_MS = 700;
+let downloadStarted = 0;
 let downloadTimer: number | undefined;
-listen<string>("download-finished", ({ payload }) => {
-  document.getElementById("download-name")!.textContent = payload;
-  downloadButton.setAttribute("aria-label", `Downloaded ${payload}. Show in folder`);
-  downloadButton.hidden = false;
+listen<string>("download-started", ({ payload }) => {
   window.clearTimeout(downloadTimer);
-  downloadTimer = window.setTimeout(() => (downloadButton.hidden = true), 8000);
+  downloadStarted = Date.now();
+  downloadButton.dataset.state = "busy";
+  downloadLabel.textContent = "Downloading";
+  downloadName.textContent = payload;
+  downloadButton.setAttribute("aria-label", `Downloading ${payload}`);
+  downloadButton.hidden = false;
+});
+listen<{ name: string; success: boolean }>("download-finished", ({ payload }) => {
+  const wait = Math.max(0, downloadStarted + MIN_BUSY_MS - Date.now());
+  window.clearTimeout(downloadTimer);
+  downloadTimer = window.setTimeout(() => {
+    downloadButton.dataset.state = payload.success ? "done" : "failed";
+    downloadLabel.textContent = payload.success ? "Downloaded" : "Download failed";
+    downloadName.textContent = payload.name;
+    downloadButton.setAttribute("aria-label", payload.success ? `Downloaded ${payload.name}. Show in folder` : `Download failed: ${payload.name}`);
+    downloadButton.hidden = false;
+    downloadTimer = window.setTimeout(() => (downloadButton.hidden = true), 8000);
+  }, wait);
 });
 downloadButton.addEventListener("click", () => (downloadButton.hidden = true));
 

@@ -416,9 +416,41 @@ struct SiteLocation {
 fn watch_location(app: AppHandle, site: Webview) {
     std::thread::spawn(move || {
         let mut last = String::new();
+        let mut was_fullscreen = false;
+        // The window was maximized when a video went fullscreen; maximize it again after.
+        let mut remaximize = false;
         loop {
             std::thread::sleep(Duration::from_millis(400));
             let Ok(url) = site.url() else { break };
+
+            // A video on the website going fullscreen makes the window fullscreen, but a
+            // maximized window stays clipped to the work area and reports no resize. Watch
+            // the state here and fix the window up when it changes.
+            if let Some(w) = app.get_window("main") {
+                let fullscreen = w.is_fullscreen().unwrap_or(false);
+                if fullscreen != was_fullscreen {
+                    was_fullscreen = fullscreen;
+                    let restore = if fullscreen {
+                        remaximize = w.is_maximized().unwrap_or(false);
+                        remaximize
+                    } else {
+                        std::mem::take(&mut remaximize)
+                    };
+                    let handle = app.clone();
+                    let _ = app.run_on_main_thread(move || {
+                        let Some(w) = handle.get_window("main") else { return };
+                        if fullscreen && restore {
+                            let _ = w.set_fullscreen(false);
+                            let _ = w.unmaximize();
+                            let _ = w.set_fullscreen(true);
+                        } else if !fullscreen && restore {
+                            let _ = w.maximize();
+                        }
+                        layout(&handle, &w);
+                    });
+                }
+            }
+
             let current = url.as_str().to_owned();
             if current == last {
                 continue;

@@ -51,7 +51,18 @@ jobs:
           args: --bundles nsis --config src-tauri/tauri.release.conf.json
           tagName: ${{ github.ref_name }}
           releaseName: Magma MCSR ${{ github.ref_name }}
-          releaseBody: "- **Download:** click `Magma-MCSR-Setup.exe` under Assets below, then run it."
+          # The Download section is the same every release; add "What's in this version" by hand.
+          releaseBody: |
+            ### Download
+
+            - Click `Magma-MCSR-Setup.exe` under Assets below, then run it.
+            - Windows only for now (Windows 10 and 11, 64-bit).
+            - Windows may show "Windows protected your PC" because the installer is not code-signed yet. Click "More info", then "Run anyway".
+            - After that, the app updates itself.
+
+            ### What's in this version
+
+            - TODO
           releaseDraft: true
           prerelease: false
           uploadUpdaterJson: true

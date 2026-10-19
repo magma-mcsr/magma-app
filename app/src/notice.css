@@ -11,22 +11,27 @@ body {
   overflow: hidden;
 }
 
-/* Covers the website, so nothing behind it can be used until the user decides. */
+/* Covers the website, so nothing behind it can be used until the user decides.
+   Background: a Minecraft night scene, darkened so the card stays readable. */
 .backdrop {
   display: grid;
   place-items: center;
   height: 100%;
   padding: 24px;
   box-sizing: border-box;
-  background: #0b0b0d;
+  background:
+    linear-gradient(rgba(6, 8, 14, 0.45), rgba(6, 8, 14, 0.55)),
+    url("/notice-bg.webp") center / cover no-repeat,
+    #0b0b0d;
 }
 
 .card {
   width: min(460px, 100%);
   padding: 22px 22px 18px;
-  border: 1px solid #2a2b30;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  background: #151518;
+  background: rgba(18, 18, 22, 0.78);
+  backdrop-filter: blur(14px);
   color: #e7e7ea;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }

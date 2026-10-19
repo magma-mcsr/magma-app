@@ -54,11 +54,9 @@ type UpdateStatus = { ready: string | null; updated?: string | null };
 const updateButton = document.getElementById("update") as HTMLButtonElement;
 const updatedButton = document.getElementById("updated") as HTMLButtonElement;
 const showUpdate = (u: UpdateStatus) => {
-  if (!updateButton.disabled) {
-    updateButton.hidden = !u.ready;
-    updateButton.textContent = u.ready ? `Update to ${u.ready}` : "Update";
-    updateButton.setAttribute("aria-label", u.ready ? `Restart to update to ${u.ready}` : "Update");
-  }
+  updateButton.hidden = !u.ready;
+  updateButton.textContent = u.ready ? `Update to ${u.ready}` : "Update";
+  updateButton.setAttribute("aria-label", u.ready ? `Restart to update to ${u.ready}` : "Update");
   // Just updated: say so once. Clicking opens the release notes in the browser.
   if (u.updated) {
     updatedButton.textContent = `Updated to ${u.updated} ↗`;
@@ -67,12 +65,7 @@ const showUpdate = (u: UpdateStatus) => {
   }
 };
 updatedButton.addEventListener("click", () => (updatedButton.hidden = true));
-// A required update is about to close the app: say so instead of vanishing.
-listen<string>("update-installing", ({ payload }) => {
-  updateButton.textContent = `Updating to ${payload}…`;
-  updateButton.disabled = true;
-  updateButton.hidden = false;
-});
+
 invoke<UpdateStatus>("update_status").then(showUpdate).catch(console.error);
 listen<UpdateStatus>("update-status", ({ payload }) => showUpdate(payload));
 

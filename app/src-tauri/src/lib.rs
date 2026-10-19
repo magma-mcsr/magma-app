@@ -48,6 +48,7 @@ pub fn run() {
             shell::sync_status,
             shell::update_status,
             shell::download_fly,
+            shell::required_update,
             panel::panel_init,
             panel::lookup_player,
             panel::add_player,

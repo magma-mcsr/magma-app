@@ -1,0 +1,84 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Covers the website, so nothing behind it can be used until the user decides. */
+.backdrop {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background: #0b0b0d;
+}
+
+.card {
+  width: min(420px, 100%);
+  padding: 22px 22px 18px;
+  border: 1px solid #2a2b30;
+  border-radius: 12px;
+  background: #151518;
+  color: #e7e7ea;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+h1 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+p {
+  margin: 0 0 20px;
+  color: #a1a2a8;
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+button {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.primary {
+  border: none;
+  background: #f0743a;
+  color: #1a0d06;
+}
+
+.primary:hover:not(:disabled) {
+  background: #f48a57;
+}
+
+.secondary {
+  border: 1px solid #2a2b30;
+  background: none;
+  color: #e7e7ea;
+}
+
+.secondary:hover:not(:disabled) {
+  background: #1f2024;
+}

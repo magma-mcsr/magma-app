@@ -37,8 +37,8 @@ are still available and sends them to Magma for analysis.
   while you are using it. An update is only installed if it is signed with the Magma update
   key; release installers are built from this repository by GitHub Actions
   (`.github/workflows/release.yml`).
-- If Magma stops accepting an old version of the app, uploads pause (nothing is deleted) until
-  the app has updated.
+- If Magma stops accepting an old version of the app, uploads pause (nothing is deleted) and the
+  app asks you to update or quit.
 
 ## Where replays come from
 

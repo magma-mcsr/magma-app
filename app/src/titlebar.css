@@ -161,10 +161,6 @@ button {
   display: none;
 }
 
-.update:disabled {
-  opacity: 0.85;
-}
-
 /* Shown once after an update, in the brand orange so it is noticed; links to the notes. */
 .updated {
   height: 24px;

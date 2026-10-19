@@ -28,6 +28,8 @@ const TITLEBAR_HEIGHT: f64 = 36.0;
 const PANEL_WIDTH: f64 = 380.0;
 pub const TITLEBAR_LABEL: &str = "titlebar";
 pub const PANEL_LABEL: &str = "panel";
+/// Covers the website while the server requires an update (see update.rs).
+const NOTICE_LABEL: &str = "notice";
 const SITE_LABEL: &str = "site";
 
 /// Whether the settings panel is showing.
@@ -144,6 +146,9 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
 
     watch_location(app.clone(), site);
     window.show()?;
+    if app.state::<Engine>().live().update_required {
+        show_required_notice(app);
+    }
     let _ = window.set_focus();
 
     // First run: open the panel so the user can set up sync.
@@ -301,9 +306,11 @@ fn layout(app: &AppHandle, window: &Window) {
                 let _ = w.hide();
             }
         }
-        if let Some(site) = app.get_webview(SITE_LABEL) {
-            let _ = site.set_position(PhysicalPosition::new(0, 0));
-            let _ = site.set_size(size);
+        for label in [SITE_LABEL, NOTICE_LABEL] {
+            if let Some(w) = app.get_webview(label) {
+                let _ = w.set_position(PhysicalPosition::new(0, 0));
+                let _ = w.set_size(size);
+            }
         }
         return;
     }
@@ -321,15 +328,34 @@ fn layout(app: &AppHandle, window: &Window) {
         let _ = bar.set_position(PhysicalPosition::new(0, 0));
         let _ = bar.set_size(PhysicalSize::new(size.width, bar_h));
     }
-    if let Some(site) = app.get_webview(SITE_LABEL) {
-        let _ = site.set_position(PhysicalPosition::new(0, bar_h as i32));
-        let _ = site.set_size(PhysicalSize::new(size.width, content_h));
+    for label in [SITE_LABEL, NOTICE_LABEL] {
+        if let Some(w) = app.get_webview(label) {
+            let _ = w.set_position(PhysicalPosition::new(0, bar_h as i32));
+            let _ = w.set_size(PhysicalSize::new(size.width, content_h));
+        }
     }
     if let Some(panel) = app.get_webview(PANEL_LABEL) {
         let panel_w = ((PANEL_WIDTH * scale).round() as u32).min(size.width);
         let _ = panel.set_position(PhysicalPosition::new((size.width - panel_w) as i32, bar_h as i32));
         let _ = panel.set_size(PhysicalSize::new(panel_w, content_h));
     }
+}
+
+/// Cover the website with the "Update required" notice. It has no close button: the user
+/// updates or quits. Without an open window there is nobody to ask, so nothing is shown.
+pub fn show_required_notice(app: &AppHandle) {
+    let Some(window) = app.get_window("main") else { return };
+    if let Some(notice) = app.get_webview(NOTICE_LABEL) {
+        let _ = notice.show();
+    } else {
+        let builder = WebviewBuilder::new(NOTICE_LABEL, WebviewUrl::App("notice.html".into())).disable_drag_drop_handler();
+        if let Err(e) = window.add_child(builder, LogicalPosition::new(0.0, TITLEBAR_HEIGHT), LogicalSize::new(100.0, 100.0)) {
+            eprintln!("[shell] could not show the update notice: {e}");
+            return;
+        }
+    }
+    set_panel(app, false);
+    layout(app, &window);
 }
 
 pub fn set_panel(app: &AppHandle, open: bool) {
@@ -546,6 +572,23 @@ pub fn download_fly(webview: Webview, x: f64, name: String) -> Result<(), String
     let site = webview.app_handle().get_webview(SITE_LABEL).ok_or("site webview missing")?;
     let name = serde_json::to_string(&name).map_err(|e| e.to_string())?;
     site.eval(format!("{DOWNLOAD_FLY_JS}({x}, {name})")).map_err(|e| e.to_string())
+}
+
+/// The two buttons of the "Update required" notice.
+#[tauri::command]
+pub fn required_update(webview: Webview, action: &str) -> Result<(), String> {
+    if webview.label() != NOTICE_LABEL {
+        return Err("not allowed".into());
+    }
+    let app = webview.app_handle();
+    match action {
+        "update" => crate::update::install_now(app),
+        "quit" => {
+            app.exit(0);
+            Ok(())
+        }
+        _ => Err(format!("unknown action {action}")),
+    }
 }
 
 /// Downloaded update waiting to be installed, for the title bar when it first loads.

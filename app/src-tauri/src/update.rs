@@ -9,7 +9,8 @@
 //!   background and the title bar offers "Update to x.y.z". Nothing closes on its own;
 //!   if the user ignores it, the next start at login installs it.
 //! - When the server says this version is no longer supported (HTTP 426): uploads pause
-//!   with the queued files kept, the title bar says so, and the update is installed.
+//!   with the queued files kept. If the window is open, a notice covers the website and
+//!   the user chooses to update or quit; with no window open, the update is installed.
 //! - After an update, the title bar shows "Updated to x.y.z" once, linking to the notes.
 
 use std::sync::Mutex;
@@ -28,13 +29,12 @@ const CHECK_INTERVAL: Duration = Duration::from_secs(6 * 3600);
 /// How often to look again while the server refuses this version.
 const REQUIRED_RETRY: Duration = Duration::from_secs(15 * 60);
 
-/// How long the title bar shows "Updating" before a required update closes the app.
-const REQUIRED_NOTICE: Duration = Duration::from_secs(3);
-
 pub struct Updates {
     ready: Mutex<Option<(Update, Vec<u8>)>>,
     /// Set once after this version was installed as an update; taken by the title bar.
     updated: Mutex<Option<String>>,
+    /// The user pressed "Update now" on the required-update notice.
+    install_requested: std::sync::atomic::AtomicBool,
     wake: Notify,
 }
 
@@ -49,7 +49,12 @@ pub struct UpdateStatus {
 
 impl Updates {
     pub fn new() -> Self {
-        Updates { ready: Mutex::new(None), updated: Mutex::new(None), wake: Notify::new() }
+        Updates {
+            ready: Mutex::new(None),
+            updated: Mutex::new(None),
+            install_requested: Default::default(),
+            wake: Notify::new(),
+        }
     }
 
     pub fn status(&self) -> UpdateStatus {
@@ -90,6 +95,7 @@ impl Updates {
         if !engine.live().update_required {
             eprintln!("[update] server requires a newer version");
             engine.set(app, |l| l.update_required = true);
+            crate::shell::show_required_notice(app);
         }
         self.wake.notify_one();
     }
@@ -100,6 +106,21 @@ pub fn install_ready(app: &AppHandle) -> Result<(), String> {
     let ready = app.state::<Updates>().ready.lock().expect("update lock").take();
     let Some((update, bytes)) = ready else { return Err("no update ready".into()) };
     install(&update, &bytes)
+}
+
+/// "Update now" on the required-update notice: install as soon as the update is here.
+pub fn install_now(app: &AppHandle) -> Result<(), String> {
+    let updates = app.state::<Updates>();
+    updates.install_requested.store(true, std::sync::atomic::Ordering::Relaxed);
+    let ready = updates.ready.lock().expect("update lock").take();
+    match ready {
+        Some((update, bytes)) => install(&update, &bytes),
+        None => {
+            // Still downloading (or not found yet): the update loop installs it next.
+            updates.wake.notify_one();
+            Ok(())
+        }
+    }
 }
 
 /// The installer from earlier updates is left in the temp folder; remove it.
@@ -127,13 +148,6 @@ async fn check_and_download(app: &AppHandle) -> Result<Option<(Update, Vec<u8>)>
     Ok(Some((update, bytes)))
 }
 
-/// Tell the title bar the app is about to close for a required update, and give the
-/// user a moment to read it.
-async fn announce_required_install(app: &AppHandle, version: &str) {
-    let _ = app.emit_to(TITLEBAR_LABEL, "update-installing", version.to_owned());
-    tokio::time::sleep(REQUIRED_NOTICE).await;
-}
-
 pub async fn run(app: AppHandle) {
     // Development builds are never replaced by a release.
     if cfg!(debug_assertions) {
@@ -148,11 +162,16 @@ pub async fn run(app: AppHandle) {
         // Once the user opens the window, the app no longer closes on its own.
         quiet = quiet && app.get_window("main").is_none();
 
+        // A required update may install without asking only if nobody is looking, or once
+        // the user pressed "Update now"; otherwise the notice waits for the user.
+        let may_install_required = || {
+            app.get_window("main").is_none() || updates.install_requested.load(std::sync::atomic::Ordering::Relaxed)
+        };
+
         // Already downloaded and now required: no need to download again.
-        if required() {
+        if required() && may_install_required() {
             let ready = updates.ready.lock().expect("update lock").take();
             if let Some((update, bytes)) = ready {
-                announce_required_install(&app, &update.version).await;
                 if let Err(e) = install(&update, &bytes) {
                     eprintln!("[update] install failed: {e}");
                 }
@@ -162,10 +181,7 @@ pub async fn run(app: AppHandle) {
         let has_ready = updates.ready.lock().expect("update lock").is_some();
         if !has_ready {
             match check_and_download(&app).await {
-                Ok(Some((update, bytes))) if quiet || required() => {
-                    if required() {
-                        announce_required_install(&app, &update.version).await;
-                    }
+                Ok(Some((update, bytes))) if quiet || (required() && may_install_required()) => {
                     if let Err(e) = install(&update, &bytes) {
                         eprintln!("[update] install failed: {e}");
                     }

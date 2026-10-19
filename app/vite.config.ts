@@ -8,10 +8,11 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(() => ({
   plugins: [react()],
 
-  // Local pages: the custom title bar strip and the settings panel. The main view is the website.
+  // Local pages: the custom title bar strip, the settings panel and the "update required"
+  // notice. The main view is the website.
   build: {
     rollupOptions: {
-      input: { titlebar: "titlebar.html", panel: "panel.html" },
+      input: { titlebar: "titlebar.html", panel: "panel.html", notice: "notice.html" },
     },
   },
 

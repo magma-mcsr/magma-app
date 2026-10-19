@@ -520,6 +520,11 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
         "close" => window.close(),
         "drag" => window.start_dragging(),
         "update" => return crate::update::install_ready(app),
+        "whats-new" => {
+            use tauri_plugin_opener::OpenerExt;
+            let url = format!("https://github.com/magma-mcsr/magma-app/releases/tag/v{}", env!("CARGO_PKG_VERSION"));
+            return app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string());
+        }
         "show-download" => {
             let Some(path) = app.state::<LastDownload>().0.lock().expect("last download").clone() else {
                 return Ok(());
@@ -549,7 +554,7 @@ pub fn update_status(webview: Webview) -> Result<crate::update::UpdateStatus, St
     if webview.label() != TITLEBAR_LABEL {
         return Err("not allowed".into());
     }
-    Ok(webview.app_handle().state::<crate::update::Updates>().status())
+    Ok(webview.app_handle().state::<crate::update::Updates>().status_for_titlebar())
 }
 
 /// Current sync status, for the title bar and panel when they first load.

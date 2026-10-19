@@ -32,9 +32,11 @@ are still available and sends them to Magma for analysis.
 - Only downloads replays from the last 7 days that it has not handled before.
 - Optionally saves a copy of each replay to a folder you choose.
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**
-- Checks this repository's GitHub Releases for updates and installs them. An update is only
-  installed if it is signed with the Magma update key; release installers are built from this
-  repository by GitHub Actions (`.github/workflows/release.yml`).
+- Checks this repository's GitHub Releases for updates. A new version is installed when the app
+  starts with Windows, or when you click "Update" in the title bar; it never closes on you
+  while you are using it. An update is only installed if it is signed with the Magma update
+  key; release installers are built from this repository by GitHub Actions
+  (`.github/workflows/release.yml`).
 - If Magma stops accepting an old version of the app, uploads pause (nothing is deleted) until
   the app has updated.
 

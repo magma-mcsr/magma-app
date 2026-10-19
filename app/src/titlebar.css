@@ -161,6 +161,32 @@ button {
   display: none;
 }
 
+.update:disabled {
+  opacity: 0.85;
+}
+
+/* Shown once after an update, in the brand orange so it is noticed; links to the notes. */
+.updated {
+  height: 24px;
+  margin-right: 6px;
+  padding: 0 11px;
+  border: 1px solid #f0743a;
+  border-radius: 999px;
+  color: #f7a77d;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.updated:hover {
+  background: #f0743a22;
+  color: #ffd2b8;
+}
+
+.updated[hidden] {
+  display: none;
+}
+
 /* Sync status pill: status and entry to the settings panel in one element. */
 .pill {
   display: flex;

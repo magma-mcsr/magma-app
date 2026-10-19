@@ -29,6 +29,8 @@ pub fn run() {
         .setup(|app| {
             let dir = app.path().app_config_dir()?;
             app.manage(settings::Store::load(dir));
+            app.state::<update::Updates>().note_version(&app.state::<settings::Store>());
+            std::thread::spawn(update::clean_old_installers);
             // Rewrite the startup entry on every launch: it then always points at this
             // install, quoted (versions before 0.1.2 wrote it without quotes).
             if app.state::<settings::Store>().get().start_with_windows {

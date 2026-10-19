@@ -29,6 +29,8 @@ pub struct Settings {
     /// Closing the window hides it to the tray instead of quitting.
     pub run_in_tray: bool,
     pub paused: bool,
+    /// App version that last ran, to say "Updated to ..." once after an update.
+    pub last_run_version: Option<String>,
 }
 
 impl Default for Settings {
@@ -41,6 +43,7 @@ impl Default for Settings {
             start_with_windows: false,
             run_in_tray: true,
             paused: false,
+            last_run_version: None,
         }
     }
 }

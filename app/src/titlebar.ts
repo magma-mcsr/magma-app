@@ -50,12 +50,29 @@ listen<SyncStatus>("sync-status", ({ payload }) => showStatus(payload));
 listen<boolean>("panel-open", ({ payload }) => pill.classList.toggle("open", payload));
 
 // A downloaded update shows an "Update" button; clicking it restarts into the new version.
-type UpdateStatus = { ready: string | null };
+type UpdateStatus = { ready: string | null; updated?: string | null };
 const updateButton = document.getElementById("update") as HTMLButtonElement;
+const updatedButton = document.getElementById("updated") as HTMLButtonElement;
 const showUpdate = (u: UpdateStatus) => {
-  updateButton.hidden = !u.ready;
-  updateButton.setAttribute("aria-label", u.ready ? `Restart to update to ${u.ready}` : "Update");
+  if (!updateButton.disabled) {
+    updateButton.hidden = !u.ready;
+    updateButton.textContent = u.ready ? `Update to ${u.ready}` : "Update";
+    updateButton.setAttribute("aria-label", u.ready ? `Restart to update to ${u.ready}` : "Update");
+  }
+  // Just updated: say so once. Clicking opens the release notes in the browser.
+  if (u.updated) {
+    updatedButton.textContent = `Updated to ${u.updated} ↗`;
+    updatedButton.setAttribute("aria-label", `Updated to ${u.updated}. See what's new`);
+    updatedButton.hidden = false;
+  }
 };
+updatedButton.addEventListener("click", () => (updatedButton.hidden = true));
+// A required update is about to close the app: say so instead of vanishing.
+listen<string>("update-installing", ({ payload }) => {
+  updateButton.textContent = `Updating to ${payload}…`;
+  updateButton.disabled = true;
+  updateButton.hidden = false;
+});
 invoke<UpdateStatus>("update_status").then(showUpdate).catch(console.error);
 listen<UpdateStatus>("update-status", ({ payload }) => showUpdate(payload));
 

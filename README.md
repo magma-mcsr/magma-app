@@ -20,6 +20,12 @@ are still available and sends them to Magma for analysis.
 
 ## What it does
 
+- Shows magmamcsr.com in its own window. To the website it looks like Microsoft Edge, with
+  `MagmaApp/<version>` added to the user agent so Magma can tell visits from the app apart.
+- Links to other websites open in your default browser, and `mailto:` links in your mail app.
+  Files you download from the website are saved to your Downloads folder, as in a browser.
+- When you close the window to the tray, the website is unloaded and only the background
+  sync keeps running.
 - Downloads replays of the players **you** add, from the official public replay CDN.
 - Stays well within the official limits: at most one replay download every 26 seconds, and
   API requests at least 1.2 seconds apart. It identifies itself as `magma-app/<version>`.
@@ -36,8 +42,10 @@ are still available and sends them to Magma for analysis.
 
 - It does not read any other files on your computer.
 - It does not ask for your Minecraft, Microsoft or MCSR login.
-- The website shown in the window cannot use any of the app's native features (files,
-  downloads, settings). Only the app's own title bar and settings panel can.
+- The website shown in the window cannot use any of the app's native features (your files,
+  settings, replay sync). Only the app's own title bar and settings panel can.
+- A link on the website can never open files or programs on your computer: only web links
+  and `mailto:` links are passed on to the system.
 
 ## Where to look
 
@@ -47,7 +55,7 @@ are still available and sends them to Magma for analysis.
 | What gets sent to Magma | `app/src-tauri/src/upload.rs` |
 | Requests to the official API and replay CDN | `app/src-tauri/src/mcsr.rs` |
 | Which pages may call native features | `app/src-tauri/capabilities/default.json` |
-| Window, title bar and tray | `app/src-tauri/src/shell.rs` |
+| Window, title bar and tray; where links and downloads go | `app/src-tauri/src/shell.rs` |
 | Settings and where they are stored | `app/src-tauri/src/settings.rs` |
 | Updates | `app/src-tauri/src/update.rs` |
 

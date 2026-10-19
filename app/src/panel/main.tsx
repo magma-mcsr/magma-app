@@ -262,7 +262,9 @@ function Panel({ init }: { init: Init }) {
         <footer>
           {/* While the list is empty, the same sentence is already in the intro above. */}
           <span>{!empty && <>Replays are uploaded to Magma and analyses are public. {learnMore}</>}</span>
-          <span className="version">v{init.version}</span>
+          <button className="link version" onClick={() => invoke("show_whats_new").catch(console.error)}>
+            v{init.version} · What's new
+          </button>
         </footer>
       </div>
     </div>

@@ -32,6 +32,8 @@ export default defineConfig(() => ({
           port: 1421,
         }
       : undefined,
+    // The notice page bundles ../CHANGELOG.md, outside this folder.
+    fs: { allow: [".."] },
     watch: {
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ["**/src-tauri/**"],

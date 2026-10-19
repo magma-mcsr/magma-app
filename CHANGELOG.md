@@ -1,0 +1,41 @@
+# Changelog
+
+What changed in each version of the Magma MCSR app. The app shows the section for its own
+version after an update, and each GitHub release uses the same text.
+
+## 0.1.2
+
+- **Updates never close the app on you**
+  - When a new version is out while you are using the app, the title bar offers "Update to …". It installs when you click it, or the next time the app starts with Windows.
+  - If an old version is no longer supported, the app asks you to update or quit instead of closing by itself. Nothing waiting to upload is lost.
+- **See what's new**
+  - After an update, the app shows what changed. You can open it again from the settings panel.
+- **Settings are always there**
+  - The panel is now "Settings", with Replay sync and App sections. App settings no longer stay hidden until you add a player.
+- Start with Windows is now registered more safely.
+- Installers left behind by earlier updates are cleaned up.
+
+## 0.1.1
+
+- **Much lighter in the tray**
+  - Closing the window to the tray now unloads the website, so background sync uses a few MB of memory instead of hundreds.
+  - Opening it again brings you back to the page you were on, at the same size and position.
+- **Links and files behave like in a browser**
+  - Links to other websites open in your default browser.
+  - Dragging files onto the website now works (for example, worlds in the Run Analyzer).
+  - Downloads from the website show their progress in the title bar. Click the finished file to show it in its folder.
+- **Fullscreen videos** now cover the whole screen, also when the window is maximized.
+- The website can now tell it is opened from the app (`MagmaApp/<version>` in the user agent), for anonymous usage stats.
+
+## 0.1.0
+
+- First release of the Magma MCSR desktop app.
+- **The Magma website in its own window**
+  - Everything on magmamcsr.com, without opening a browser.
+- **Replay sync (early)**
+  - Add the MCSR Ranked players you follow.
+  - The app downloads their replays in the background while they are still available (official replays are only kept for 7 days).
+  - Replays are uploaded to Magma and analyzed.
+  - The analyses are not shown on the website yet. They will appear on magmamcsr.com once that part is ready, with no app update needed.
+  - Analyses will be public.
+  - Optionally keeps a copy of each replay in a folder you choose.

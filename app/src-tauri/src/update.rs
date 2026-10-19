@@ -11,7 +11,7 @@
 //! - When the server says this version is no longer supported (HTTP 426): uploads pause
 //!   with the queued files kept. If the window is open, a notice covers the website and
 //!   the user chooses to update or quit; with no window open, the update is installed.
-//! - After an update, the title bar shows "Updated to x.y.z" once, linking to the notes.
+//! - After an update, "What's new" (from CHANGELOG.md) is shown once over the website.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -43,8 +43,6 @@ pub struct Updates {
 pub struct UpdateStatus {
     /// Version downloaded and ready to install, if any.
     pub ready: Option<String>,
-    /// This version was just installed as an update (shown once).
-    pub updated: Option<String>,
 }
 
 impl Updates {
@@ -58,15 +56,13 @@ impl Updates {
     }
 
     pub fn status(&self) -> UpdateStatus {
-        UpdateStatus {
-            ready: self.ready.lock().expect("update lock").as_ref().map(|(u, _)| u.version.clone()),
-            updated: None,
-        }
+        UpdateStatus { ready: self.ready.lock().expect("update lock").as_ref().map(|(u, _)| u.version.clone()) }
     }
 
-    /// Status for the title bar when it loads; the "Updated to" notice is handed out once.
-    pub fn status_for_titlebar(&self) -> UpdateStatus {
-        UpdateStatus { updated: self.updated.lock().expect("update lock").take(), ..self.status() }
+    /// Whether this run follows an update and "What's new" has not been shown yet.
+    /// Handed out once.
+    pub fn take_updated(&self) -> bool {
+        self.updated.lock().expect("update lock").take().is_some()
     }
 
     /// Remember the running version; if it changed since the last run, this run follows
@@ -95,7 +91,7 @@ impl Updates {
         if !engine.live().update_required {
             eprintln!("[update] server requires a newer version");
             engine.set(app, |l| l.update_required = true);
-            crate::shell::show_required_notice(app);
+            crate::shell::show_notice(app, crate::shell::Notice::Required);
         }
         self.wake.notify_one();
     }

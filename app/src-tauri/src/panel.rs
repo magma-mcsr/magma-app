@@ -158,3 +158,11 @@ pub fn open_link(webview: Webview, url: String) -> Result<(), String> {
     webview.app_handle().opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
 }
 
+/// "What's new" in the settings footer: show this version's changes over the website.
+#[tauri::command]
+pub fn show_whats_new(webview: Webview) -> Result<(), String> {
+    guard(&webview)?;
+    crate::shell::set_panel(webview.app_handle(), false);
+    crate::shell::show_notice(webview.app_handle(), crate::shell::Notice::WhatsNew);
+    Ok(())
+}

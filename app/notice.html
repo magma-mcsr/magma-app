@@ -2,20 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Update required</title>
+    <title>Magma MCSR</title>
   </head>
   <body>
     <div class="backdrop">
-      <div class="card" role="alertdialog" aria-labelledby="title" aria-describedby="text">
-        <h1 id="title">Update required</h1>
-        <p id="text">
-          This version of Magma MCSR is no longer supported. Update to keep syncing replays. Nothing waiting to upload
-          will be lost.
-        </p>
-        <div class="actions">
-          <button id="quit" class="secondary">Quit</button>
-          <button id="update" class="primary" autofocus>Update now</button>
-        </div>
+      <div class="card" role="dialog" aria-labelledby="title">
+        <h1 id="title"></h1>
+        <div id="content"></div>
+        <div class="actions" id="actions"></div>
       </div>
     </div>
     <script type="module" src="/src/notice.ts"></script>

@@ -24,6 +24,7 @@ pub fn run() {
         .manage(shell::PanelState::default())
         .manage(shell::WindowMemory::default())
         .manage(shell::LastDownload::default())
+        .manage(shell::NoticeState::default())
         .manage(sync::Engine::new())
         .manage(update::Updates::new())
         .setup(|app| {
@@ -48,7 +49,9 @@ pub fn run() {
             shell::sync_status,
             shell::update_status,
             shell::download_fly,
-            shell::required_update,
+            shell::notice_mode,
+            shell::notice_action,
+            panel::show_whats_new,
             panel::panel_init,
             panel::lookup_player,
             panel::add_player,

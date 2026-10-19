@@ -28,8 +28,21 @@ const TITLEBAR_HEIGHT: f64 = 36.0;
 const PANEL_WIDTH: f64 = 380.0;
 pub const TITLEBAR_LABEL: &str = "titlebar";
 pub const PANEL_LABEL: &str = "panel";
-/// Covers the website while the server requires an update (see update.rs).
+/// A card over the website: "Update required" or "What's new" (notice.html).
 const NOTICE_LABEL: &str = "notice";
+
+#[derive(Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Notice {
+    /// The server no longer accepts this version: update or quit, no way to close it.
+    Required,
+    /// What changed in this version.
+    WhatsNew,
+}
+
+/// Which notice is showing, for the notice page when it loads.
+#[derive(Default)]
+pub struct NoticeState(Mutex<Option<Notice>>);
 const SITE_LABEL: &str = "site";
 
 /// Whether the settings panel is showing.
@@ -147,7 +160,9 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
     watch_location(app.clone(), site);
     window.show()?;
     if app.state::<Engine>().live().update_required {
-        show_required_notice(app);
+        show_notice(app, Notice::Required);
+    } else if app.state::<crate::update::Updates>().take_updated() {
+        show_notice(app, Notice::WhatsNew);
     }
     let _ = window.set_focus();
 
@@ -341,13 +356,23 @@ fn layout(app: &AppHandle, window: &Window) {
     }
 }
 
-/// Cover the website with the "Update required" notice. It has no close button: the user
-/// updates or quits. Without an open window there is nobody to ask, so nothing is shown.
-pub fn show_required_notice(app: &AppHandle) {
+/// Cover the website with a notice. Without an open window there is nobody to show it
+/// to, so nothing happens. "Update required" replaces "What's new", never the other way.
+pub fn show_notice(app: &AppHandle, notice: Notice) {
     let Some(window) = app.get_window("main") else { return };
-    if let Some(notice) = app.get_webview(NOTICE_LABEL) {
-        let _ = notice.show();
-    } else {
+    {
+        let state = app.state::<NoticeState>();
+        let mut current = state.0.lock().expect("notice");
+        if *current == Some(Notice::Required) && notice == Notice::WhatsNew {
+            return;
+        }
+        *current = Some(notice);
+    }
+    // Rebuilt every time, so the page loads in the right mode.
+    if let Some(old) = app.get_webview(NOTICE_LABEL) {
+        let _ = old.close();
+    }
+    {
         let builder = WebviewBuilder::new(NOTICE_LABEL, WebviewUrl::App("notice.html".into())).disable_drag_drop_handler();
         if let Err(e) = window.add_child(builder, LogicalPosition::new(0.0, TITLEBAR_HEIGHT), LogicalSize::new(100.0, 100.0)) {
             eprintln!("[shell] could not show the update notice: {e}");
@@ -546,11 +571,6 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
         "close" => window.close(),
         "drag" => window.start_dragging(),
         "update" => return crate::update::install_ready(app),
-        "whats-new" => {
-            use tauri_plugin_opener::OpenerExt;
-            let url = format!("https://github.com/magma-mcsr/magma-app/releases/tag/v{}", env!("CARGO_PKG_VERSION"));
-            return app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string());
-        }
         "show-download" => {
             let Some(path) = app.state::<LastDownload>().0.lock().expect("last download").clone() else {
                 return Ok(());
@@ -574,20 +594,52 @@ pub fn download_fly(webview: Webview, x: f64, name: String) -> Result<(), String
     site.eval(format!("{DOWNLOAD_FLY_JS}({x}, {name})")).map_err(|e| e.to_string())
 }
 
-/// The two buttons of the "Update required" notice.
+fn hide_notice(app: &AppHandle) {
+    *app.state::<NoticeState>().0.lock().expect("notice") = None;
+    if let Some(notice) = app.get_webview(NOTICE_LABEL) {
+        let _ = notice.close();
+    }
+}
+
+#[derive(Serialize)]
+pub struct NoticeMode {
+    mode: Notice,
+    version: &'static str,
+}
+
+/// Which notice to show, for the notice page when it loads.
 #[tauri::command]
-pub fn required_update(webview: Webview, action: &str) -> Result<(), String> {
+pub fn notice_mode(webview: Webview) -> Result<NoticeMode, String> {
+    if webview.label() != NOTICE_LABEL {
+        return Err("not allowed".into());
+    }
+    let mode = (*webview.app_handle().state::<NoticeState>().0.lock().expect("notice")).ok_or("no notice")?;
+    Ok(NoticeMode { mode, version: env!("CARGO_PKG_VERSION") })
+}
+
+/// The notice's buttons.
+#[tauri::command]
+pub fn notice_action(webview: Webview, action: &str) -> Result<(), String> {
     if webview.label() != NOTICE_LABEL {
         return Err("not allowed".into());
     }
     let app = webview.app_handle();
+    let required = *app.state::<NoticeState>().0.lock().expect("notice") == Some(Notice::Required);
     match action {
-        "update" => crate::update::install_now(app),
-        "quit" => {
+        "update" if required => crate::update::install_now(app),
+        "quit" if required => {
             app.exit(0);
             Ok(())
         }
-        _ => Err(format!("unknown action {action}")),
+        "close" if !required => {
+            hide_notice(app);
+            Ok(())
+        }
+        "github" => {
+            use tauri_plugin_opener::OpenerExt;
+            app.opener().open_url("https://github.com/magma-mcsr/magma-app/releases", None::<&str>).map_err(|e| e.to_string())
+        }
+        _ => Err(format!("action {action} not available here")),
     }
 }
 
@@ -597,7 +649,7 @@ pub fn update_status(webview: Webview) -> Result<crate::update::UpdateStatus, St
     if webview.label() != TITLEBAR_LABEL {
         return Err("not allowed".into());
     }
-    Ok(webview.app_handle().state::<crate::update::Updates>().status_for_titlebar())
+    Ok(webview.app_handle().state::<crate::update::Updates>().status())
 }
 
 /// Current sync status, for the title bar and panel when they first load.

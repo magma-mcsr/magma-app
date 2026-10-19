@@ -22,7 +22,7 @@ body {
 }
 
 .card {
-  width: min(420px, 100%);
+  width: min(460px, 100%);
   padding: 22px 22px 18px;
   border: 1px solid #2a2b30;
   border-radius: 12px;
@@ -37,10 +37,43 @@ h1 {
   font-weight: 600;
 }
 
-p {
-  margin: 0 0 20px;
+#content {
+  max-height: min(60vh, 420px);
+  margin-bottom: 20px;
+  overflow-y: auto;
   color: #a1a2a8;
   line-height: 1.55;
+}
+
+p {
+  margin: 0;
+}
+
+ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+li + li {
+  margin-top: 6px;
+}
+
+li ul {
+  margin-top: 4px;
+}
+
+li ul li + li {
+  margin-top: 3px;
+}
+
+strong {
+  color: #e7e7ea;
+  font-weight: 600;
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
 }
 
 .actions {

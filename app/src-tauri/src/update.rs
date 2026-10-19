@@ -68,6 +68,11 @@ impl Updates {
     /// Remember the running version; if it changed since the last run, this run follows
     /// an update. A first install says nothing.
     pub fn note_version(&self, store: &crate::settings::Store) {
+        // A development build shares its settings with the installed app; recording its
+        // version would hide "What's new" from the installed app's next update.
+        if cfg!(debug_assertions) {
+            return;
+        }
         let current = env!("CARGO_PKG_VERSION");
         let settings = store.get();
         if settings.last_run_version.as_deref() == Some(current) {

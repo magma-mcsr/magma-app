@@ -16,7 +16,8 @@ type Settings = {
 };
 type Init = { settings: Settings; version: string; defaultFolder: string | null };
 
-const LEARN_MORE = "https://magmamcsr.com/privacy";
+// Until magmamcsr.com has a privacy page, this explains what the app does and sends.
+const LEARN_MORE = "https://github.com/magma-mcsr/magma-app#what-it-does";
 // Both players are in the name, so the file is identifiable when several players are synced.
 const EXAMPLE_FILE = "2026-10-16_14201972_Feinberg_vs_subdas.rrf";
 

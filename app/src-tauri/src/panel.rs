@@ -3,7 +3,6 @@
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State, Webview};
-use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_dialog::DialogExt as _;
 use tauri_plugin_opener::OpenerExt as _;
 
@@ -125,10 +124,8 @@ pub async fn choose_folder(webview: Webview, store: State<'_, Store>) -> Result<
 #[tauri::command]
 pub fn set_start_with_windows(webview: Webview, store: State<'_, Store>, enabled: bool) -> Result<Settings, String> {
     guard(&webview)?;
-    let app = webview.app_handle();
-    let launcher = app.autolaunch();
-    if enabled { launcher.enable() } else { launcher.disable() }.map_err(|e| e.to_string())?;
-    apply(app, &store, |s| s.start_with_windows = enabled)
+    if enabled { crate::autostart::enable() } else { crate::autostart::disable() }?;
+    apply(webview.app_handle(), &store, |s| s.start_with_windows = enabled)
 }
 
 #[tauri::command]

@@ -1,3 +1,4 @@
+mod autostart;
 mod mcsr;
 mod panel;
 mod placement;
@@ -19,11 +20,6 @@ pub fn run() {
         // where new-window links open.
         .plugin(tauri_plugin_opener::Builder::new().open_js_links_on_click(false).build())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        // Launched at login with --background: start hidden in the tray.
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec!["--background"]),
-        ))
         .manage(Client::new())
         .manage(shell::PanelState::default())
         .manage(shell::WindowMemory::default())
@@ -33,6 +29,13 @@ pub fn run() {
         .setup(|app| {
             let dir = app.path().app_config_dir()?;
             app.manage(settings::Store::load(dir));
+            // Rewrite the startup entry on every launch: it then always points at this
+            // install, quoted (versions before 0.1.2 wrote it without quotes).
+            if app.state::<settings::Store>().get().start_with_windows {
+                if let Err(e) = autostart::enable() {
+                    eprintln!("[autostart] {e}");
+                }
+            }
             shell::setup(app)?;
             tauri::async_runtime::spawn(sync::run(app.handle().clone()));
             tauri::async_runtime::spawn(update::run(app.handle().clone()));

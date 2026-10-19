@@ -38,6 +38,14 @@ are still available and sends them to Magma for analysis.
 - If Magma stops accepting an old version of the app, uploads pause (nothing is deleted) until
   the app has updated.
 
+## Where replays come from
+
+- Replays are downloaded from MCSR Ranked's official public replay server, the same files the
+  official site offers. Nothing is taken from anywhere else.
+- Magma MCSR is a community project, not affiliated with MCSR Ranked.
+- Replay sync depends on MCSR Ranked keeping replays publicly available. If that changes, sync
+  may stop working.
+
 ## What it does not do
 
 - It does not read any other files on your computer.

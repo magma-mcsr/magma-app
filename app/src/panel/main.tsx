@@ -195,73 +195,75 @@ function Panel({ init }: { init: Init }) {
   return (
     <div className="panel">
       <header>
-        <span className="title">Replay sync</span>
-        {/* No status text here: the title bar pill right above already shows it. */}
+        <span className="title">Settings</span>
         <span className="spacer" />
-        {!empty && (
-          // Master switch: on = syncing, off = paused.
-          <Toggle label="Sync replays" checked={!settings.paused} onChange={(on) => set("set_paused", { paused: !on })} />
-        )}
         <button className="close" aria-label="Close" onClick={() => invoke("close_panel")}>
           ✕
         </button>
       </header>
 
       <div className="body">
-        {empty && (
-          // First run: the full explanation, shown once before anything is downloaded.
-          <p className="notice intro">
-            Add the players whose replays you want to keep. New replays are downloaded in the background and uploaded to
-            Magma for analysis. Analyses are public. {learnMore}
-          </p>
-        )}
-
-        <Players settings={settings} setSettings={setSettings} />
-
-        {!empty && (
-          <>
-            <section className="divided">
-              <h2>Settings</h2>
-              <div className="setting">
-                <span>Keep a copy of replays</span>
-                <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
+        <section className="group">
+          <div className="group-head">
+            <h2 className="group-title">Replay sync</h2>
+            {!empty && (
+              // Master switch for sync only: on = syncing, off = paused.
+              <Toggle label="Sync replays" checked={!settings.paused} onChange={(on) => set("set_paused", { paused: !on })} />
+            )}
+          </div>
+          {empty && (
+            // First run: the full explanation, shown once before anything is downloaded.
+            <p className="notice intro">
+              Add the players whose replays you want to keep. New replays are downloaded in the background and uploaded to
+              Magma for analysis. Analyses are public. {learnMore}
+            </p>
+          )}
+          <Players settings={settings} setSettings={setSettings} />
+          <div className="setting">
+            <span>Keep a copy of replays</span>
+            <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
+          </div>
+          {settings.keepCopy && (
+            // Belongs to the toggle above, so it is indented under it.
+            <div className="sub">
+              <div className="folder">
+                {/* The folder icon is a familiar enough convention to stand alone; the tooltip names it. */}
+                <span className="tip">
+                  <button className="icon-button" aria-label="Change folder" onClick={() => set("choose_folder", {})}>
+                    <svg viewBox="0 0 16 16" aria-hidden>
+                      <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.5h5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
+                    </svg>
+                  </button>
+                  <span className="bubble short" role="tooltip">
+                    Change folder
+                  </span>
+                </span>
+                <span className="path">{settings.copyFolder ?? init.defaultFolder}</span>
               </div>
-              {settings.keepCopy && (
-                // Belongs to the toggle above, so it is indented under it.
-                <div className="sub">
-                  <div className="folder">
-                    {/* The folder icon is a familiar enough convention to stand alone; the tooltip names it. */}
-                    <span className="tip">
-                      <button className="icon-button" aria-label="Change folder" onClick={() => set("choose_folder", {})}>
-                        <svg viewBox="0 0 16 16" aria-hidden>
-                          <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.5h5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
-                        </svg>
-                      </button>
-                      <span className="bubble short" role="tooltip">
-                        Change folder
-                      </span>
-                    </span>
-                    <span className="path">{settings.copyFolder ?? init.defaultFolder}</span>
-                  </div>
-                  <div className="example">{EXAMPLE_FILE}</div>
-                </div>
-              )}
-              <div className="setting">
-                <span>Start with Windows</span>
-                <Toggle label="Start with Windows" checked={settings.startWithWindows} onChange={(v) => set("set_start_with_windows", { enabled: v })} />
-              </div>
-              <div className="setting">
-                <span>Keep running in the tray</span>
-                <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
-              </div>
-            </section>
+              <div className="example">{EXAMPLE_FILE}</div>
+            </div>
+          )}
+        </section>
 
-            <footer>
-              <span>Replays are uploaded to Magma and analyses are public. {learnMore}</span>
-              <span className="version">v{init.version}</span>
-            </footer>
-          </>
-        )}
+        <section className="group divided">
+          <div className="group-head">
+            <h2 className="group-title">App</h2>
+          </div>
+          <div className="setting">
+            <span>Start with Windows</span>
+            <Toggle label="Start with Windows" checked={settings.startWithWindows} onChange={(v) => set("set_start_with_windows", { enabled: v })} />
+          </div>
+          <div className="setting">
+            <span>Keep running in the tray</span>
+            <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
+          </div>
+        </section>
+
+        <footer>
+          {/* While the list is empty, the same sentence is already in the intro above. */}
+          <span>{!empty && <>Replays are uploaded to Magma and analyses are public. {learnMore}</>}</span>
+          <span className="version">v{init.version}</span>
+        </footer>
       </div>
     </div>
   );

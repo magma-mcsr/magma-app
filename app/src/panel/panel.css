@@ -96,7 +96,34 @@ h2 {
   color: var(--muted);
 }
 
-/* Players and settings are different kinds of things, so they get a line between them. */
+/* Two groups: replay sync, and the app itself. Their titles read as headings, unlike the
+   small uppercase labels inside a group. */
+.group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  margin-bottom: 8px;
+}
+
+.group-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+}
+
+.group > section {
+  margin-top: 12px;
+}
+
+.group > .setting:first-of-type {
+  margin-top: 8px;
+}
+
+/* The two groups are different kinds of things, so they get a line between them. */
 .divided {
   padding-top: 20px;
   border-top: 1px solid var(--line);
@@ -374,4 +401,9 @@ footer {
 
 .version {
   white-space: nowrap;
+}
+
+/* The first group sits right under the panel title. */
+.group:first-child {
+  margin-top: 12px;
 }

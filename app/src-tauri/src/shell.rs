@@ -617,15 +617,15 @@ pub fn notice_mode(webview: Webview) -> Result<NoticeMode, String> {
     Ok(NoticeMode { mode, version: env!("CARGO_PKG_VERSION") })
 }
 
-/// The notice's buttons.
+/// The notice's buttons. Async: closing a webview from a synchronous command can deadlock.
 #[tauri::command]
-pub fn notice_action(webview: Webview, action: &str) -> Result<(), String> {
+pub async fn notice_action(webview: Webview, action: String) -> Result<(), String> {
     if webview.label() != NOTICE_LABEL {
         return Err("not allowed".into());
     }
     let app = webview.app_handle();
     let required = *app.state::<NoticeState>().0.lock().expect("notice") == Some(Notice::Required);
-    match action {
+    match action.as_str() {
         "update" if required => crate::update::install_now(app),
         "quit" if required => {
             app.exit(0);

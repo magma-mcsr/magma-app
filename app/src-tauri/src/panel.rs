@@ -159,8 +159,9 @@ pub fn open_link(webview: Webview, url: String) -> Result<(), String> {
 }
 
 /// "What's new" in the settings footer: show this version's changes over the website.
+/// Async: creating a webview from a synchronous command deadlocks on Windows.
 #[tauri::command]
-pub fn show_whats_new(webview: Webview) -> Result<(), String> {
+pub async fn show_whats_new(webview: Webview) -> Result<(), String> {
     guard(&webview)?;
     crate::shell::set_panel(webview.app_handle(), false);
     crate::shell::show_notice(webview.app_handle(), crate::shell::Notice::WhatsNew);

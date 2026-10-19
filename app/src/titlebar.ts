@@ -59,7 +59,7 @@ const showUpdate = (u: UpdateStatus) => {
   updateButton.setAttribute("aria-label", u.ready ? `Restart to update to ${u.ready}` : "Update");
   // Just updated: say so once. Clicking opens the release notes in the browser.
   if (u.updated) {
-    updatedButton.textContent = `Updated to ${u.updated} ↗`;
+    updatedButton.textContent = `Updated to ${u.updated}`;
     updatedButton.setAttribute("aria-label", `Updated to ${u.updated}. See what's new`);
     updatedButton.hidden = false;
   }

@@ -97,6 +97,7 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
             .on_new_window(new_window_handler(app.clone()))
             .on_download(download_handler(app.clone()))
             .initialization_script(REMEMBER_POINTER_JS)
+            .user_agent(&site_user_agent())
             .on_navigation(navigation_handler(app.clone())),
         LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
         LogicalSize::new(size.width, content_h),
@@ -191,6 +192,21 @@ fn new_window_handler(app: AppHandle) -> impl Fn(tauri::Url, tauri::webview::New
         }
         NewWindowResponse::Deny
     }
+}
+
+/// The website's user agent: exactly what Edge sends (Google sign-in and other sites
+/// expect a normal browser), plus `MagmaApp/<version>` so Magma can tell app visits apart.
+fn site_user_agent() -> String {
+    let major = tauri::webview_version()
+        .ok()
+        .and_then(|v| v.split('.').next().map(str::to_owned))
+        .filter(|m| m.parse::<u32>().is_ok())
+        .unwrap_or_else(|| "140".into());
+    format!(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) \
+         Chrome/{major}.0.0.0 Safari/537.36 Edg/{major}.0.0.0 MagmaApp/{}",
+        env!("CARGO_PKG_VERSION")
+    )
 }
 
 /// Runs in the website: remembers only where the user last pressed, so a download can

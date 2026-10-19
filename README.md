@@ -68,6 +68,7 @@ are still available and sends them to Magma for analysis.
 | Window, title bar and tray; where links and downloads go | `app/src-tauri/src/shell.rs` |
 | Settings and where they are stored | `app/src-tauri/src/settings.rs` |
 | Updates | `app/src-tauri/src/update.rs` |
+| What changed in each version | `CHANGELOG.md` |
 
 ## Building
 

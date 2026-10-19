@@ -3,6 +3,14 @@
 What changed in each version of the Magma MCSR app. The app shows the section for its own
 version after an update, and each GitHub release uses the same text.
 
+## 0.1.3
+
+- **Smoother What's new**
+  - It fades in instead of flashing.
+  - The settings panel opens beside it, and back, forward and reload close it first.
+- While an update is required, the title bar buttons that act on the website are turned off.
+- "Learn more" in the settings now explains what the app does and sends.
+
 ## 0.1.2
 
 - **Updates never close the app on you**

@@ -50,6 +50,7 @@ pub fn run() {
             shell::update_status,
             shell::download_fly,
             shell::notice_mode,
+            shell::notice_state,
             shell::notice_action,
             panel::show_whats_new,
             panel::panel_init,

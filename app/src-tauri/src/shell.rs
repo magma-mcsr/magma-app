@@ -314,6 +314,10 @@ fn navigation_handler(app: AppHandle) -> impl Fn(&tauri::Url) -> bool + Send + '
 /// Title bar on top, website below, panel over the website's right edge.
 /// While a video on the website is fullscreen, the website fills the whole window.
 fn layout(app: &AppHandle, window: &Window) {
+    // A minimized window reports no usable size; it is laid out again when restored.
+    if window.is_minimized().unwrap_or(false) {
+        return;
+    }
     let (Ok(size), Ok(scale)) = (window.inner_size(), window.scale_factor()) else { return };
     if window.is_fullscreen().unwrap_or(false) {
         for label in [TITLEBAR_LABEL, PANEL_LABEL] {
@@ -343,14 +347,19 @@ fn layout(app: &AppHandle, window: &Window) {
         let _ = bar.set_position(PhysicalPosition::new(0, 0));
         let _ = bar.set_size(PhysicalSize::new(size.width, bar_h));
     }
-    for label in [SITE_LABEL, NOTICE_LABEL] {
-        if let Some(w) = app.get_webview(label) {
-            let _ = w.set_position(PhysicalPosition::new(0, bar_h as i32));
-            let _ = w.set_size(PhysicalSize::new(size.width, content_h));
-        }
+    let panel_w = ((PANEL_WIDTH * scale).round() as u32).min(size.width);
+    if let Some(site) = app.get_webview(SITE_LABEL) {
+        let _ = site.set_position(PhysicalPosition::new(0, bar_h as i32));
+        let _ = site.set_size(PhysicalSize::new(size.width, content_h));
+    }
+    // The notice sits above the panel, so it makes room for it when the panel is open.
+    if let Some(notice) = app.get_webview(NOTICE_LABEL) {
+        let panel_open = app.state::<PanelState>().0.load(Ordering::Relaxed);
+        let width = if panel_open { size.width - panel_w } else { size.width };
+        let _ = notice.set_position(PhysicalPosition::new(0, bar_h as i32));
+        let _ = notice.set_size(PhysicalSize::new(width, content_h));
     }
     if let Some(panel) = app.get_webview(PANEL_LABEL) {
-        let panel_w = ((PANEL_WIDTH * scale).round() as u32).min(size.width);
         let _ = panel.set_position(PhysicalPosition::new((size.width - panel_w) as i32, bar_h as i32));
         let _ = panel.set_size(PhysicalSize::new(panel_w, content_h));
     }
@@ -368,12 +377,16 @@ pub fn show_notice(app: &AppHandle, notice: Notice) {
         }
         *current = Some(notice);
     }
+    let _ = app.emit_to(TITLEBAR_LABEL, "notice", Some(notice));
     // Rebuilt every time, so the page loads in the right mode.
     if let Some(old) = app.get_webview(NOTICE_LABEL) {
         let _ = old.close();
     }
     {
-        let builder = WebviewBuilder::new(NOTICE_LABEL, WebviewUrl::App("notice.html".into())).disable_drag_drop_handler();
+        let builder = WebviewBuilder::new(NOTICE_LABEL, WebviewUrl::App("notice.html".into()))
+            .disable_drag_drop_handler()
+            // Same dark as the page, so it does not flash white while loading.
+            .background_color(tauri::window::Color(11, 11, 13, 255));
         if let Err(e) = window.add_child(builder, LogicalPosition::new(0.0, TITLEBAR_HEIGHT), LogicalSize::new(100.0, 100.0)) {
             eprintln!("[shell] could not show the update notice: {e}");
             return;
@@ -386,10 +399,11 @@ pub fn show_notice(app: &AppHandle, notice: Notice) {
 pub fn set_panel(app: &AppHandle, open: bool) {
     let Some(panel) = app.get_webview(PANEL_LABEL) else { return };
     app.state::<PanelState>().0.store(open, Ordering::Relaxed);
+    // Lay out first: a notice over the website makes room for the panel, or takes it back.
+    if let Some(w) = app.get_window("main") {
+        layout(app, &w);
+    }
     if open {
-        if let Some(w) = app.get_window("main") {
-            layout(app, &w);
-        }
         let _ = panel.show();
         let _ = panel.set_focus();
     } else {
@@ -554,6 +568,21 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
     let app = webview.app_handle();
     let window = webview.window();
     let site = || app.get_webview(SITE_LABEL).ok_or_else(|| "site webview missing".to_string());
+    // While a notice covers the website: "Update required" keeps the website buttons and
+    // the panel off (the title bar greys them out). "What's new" closes for the website
+    // buttons, which would otherwise act unseen behind it, and makes room for the panel.
+    if matches!(action, "back" | "forward" | "reload" | "panel") {
+        let notice = *app.state::<NoticeState>().0.lock().expect("notice");
+        match notice {
+            Some(Notice::Required) => return Ok(()),
+            Some(Notice::WhatsNew) if action != "panel" => {
+                // Closing a webview from a synchronous command can deadlock; do it async.
+                let handle = app.clone();
+                tauri::async_runtime::spawn(async move { hide_notice(&handle) });
+            }
+            _ => {}
+        }
+    }
     let result = match action {
         "back" => site()?.eval("history.back()"),
         "forward" => site()?.eval("history.forward()"),
@@ -596,6 +625,7 @@ pub fn download_fly(webview: Webview, x: f64, name: String) -> Result<(), String
 
 fn hide_notice(app: &AppHandle) {
     *app.state::<NoticeState>().0.lock().expect("notice") = None;
+    let _ = app.emit_to(TITLEBAR_LABEL, "notice", None::<Notice>);
     if let Some(notice) = app.get_webview(NOTICE_LABEL) {
         let _ = notice.close();
     }
@@ -641,6 +671,15 @@ pub async fn notice_action(webview: Webview, action: String) -> Result<(), Strin
         }
         _ => Err(format!("action {action} not available here")),
     }
+}
+
+/// The notice showing now, for the title bar when it first loads.
+#[tauri::command]
+pub fn notice_state(webview: Webview) -> Result<Option<Notice>, String> {
+    if webview.label() != TITLEBAR_LABEL {
+        return Err("not allowed".into());
+    }
+    Ok(*webview.app_handle().state::<NoticeState>().0.lock().expect("notice"))
 }
 
 /// Downloaded update waiting to be installed, for the title bar when it first loads.

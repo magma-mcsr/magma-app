@@ -101,6 +101,12 @@ function showWhatsNew(version: string) {
   button("Got it", "primary", () => invoke("notice_action", { action: "close" }).catch(console.error)).focus();
 }
 
+// Show the page only once the background image is decoded (see notice.css).
+const background = new Image();
+background.src = "/notice-bg.webp";
+const ready = background.decode().catch(() => {});
+
 invoke<Mode>("notice_mode")
   .then(({ mode, version }) => (mode === "required" ? showRequired() : showWhatsNew(version)))
-  .catch(console.error);
+  .catch(console.error)
+  .finally(() => ready.then(() => document.body.classList.add("ready")));

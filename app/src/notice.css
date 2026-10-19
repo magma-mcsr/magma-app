@@ -11,6 +11,21 @@ body {
   overflow: hidden;
 }
 
+/* Everything fades in together once the background image is ready, instead of the
+   card appearing first and the picture popping in after it. */
+body {
+  background: #0b0b0d;
+}
+
+.backdrop {
+  opacity: 0;
+  transition: opacity 160ms ease-out;
+}
+
+body.ready .backdrop {
+  opacity: 1;
+}
+
 /* Covers the website, so nothing behind it can be used until the user decides.
    Background: a Minecraft night scene, darkened so the card stays readable. */
 .backdrop {

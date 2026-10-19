@@ -102,6 +102,14 @@ listen<{ name: string; success: boolean }>("download-finished", ({ payload }) =>
 });
 downloadButton.addEventListener("click", () => (downloadButton.hidden = true));
 
+// While "Update required" covers the website, the buttons that act on it are off.
+const lockable = document.querySelectorAll<HTMLButtonElement>('button[data-action="back"], button[data-action="forward"], button[data-action="reload"], #pill');
+const showNotice = (notice: string | null) => {
+  for (const b of lockable) b.disabled = notice === "required";
+};
+invoke<string | null>("notice_state").then(showNotice).catch(console.error);
+listen<string | null>("notice", ({ payload }) => showNotice(payload));
+
 // Swap the maximize icon for a restore icon while the window is maximized.
 listen<boolean>("window-maximized", ({ payload }) => {
   document.getElementById("maximize")!.classList.toggle("maximized", payload);

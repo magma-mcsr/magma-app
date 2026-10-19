@@ -288,3 +288,9 @@ button {
 .maximized .when-maximized {
   display: block;
 }
+
+/* Off while "Update required" covers the website. */
+button:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}

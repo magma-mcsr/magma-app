@@ -39,6 +39,36 @@ jobs:
         working-directory: app
         run: npm ci
 
+      # Release notes: the same Download section every time, then this version's section
+      # of CHANGELOG.md (which the app also shows after updating). No section, no release.
+      - name: Release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          section=$(awk -v head="## $version" '$0 == head { found = 1; next } /^## / { found = 0 } found' CHANGELOG.md | sed '/./,$!d')
+          if [ -z "$section" ]; then
+            echo "CHANGELOG.md has no section for $version" >&2
+            exit 1
+          fi
+          {
+            echo 'body<<RELEASE_NOTES_END'
+            cat <<'DOWNLOAD'
+          ### Download
+
+          - Click `Magma-MCSR-Setup.exe` under Assets below, then run it.
+          - Windows only for now (Windows 10 and 11, 64-bit).
+          - If your browser says the file "isn't commonly downloaded", choose Keep (in Edge: click "...", then Keep).
+          - Windows may show "Windows protected your PC" because the installer is not code-signed yet. Click "More info", then "Run anyway".
+          - After that, the app updates itself.
+
+          ### What's in this version
+
+          DOWNLOAD
+            echo "$section"
+            echo 'RELEASE_NOTES_END'
+          } >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v1
         id: tauri
         env:
@@ -51,19 +81,7 @@ jobs:
           args: --bundles nsis --config src-tauri/tauri.release.conf.json
           tagName: ${{ github.ref_name }}
           releaseName: Magma MCSR ${{ github.ref_name }}
-          # The Download section is the same every release; add "What's in this version" by hand.
-          releaseBody: |
-            ### Download
-
-            - Click `Magma-MCSR-Setup.exe` under Assets below, then run it.
-            - Windows only for now (Windows 10 and 11, 64-bit).
-            - If your browser says the file "isn't commonly downloaded", choose Keep (in Edge: click "...", then Keep).
-            - Windows may show "Windows protected your PC" because the installer is not code-signed yet. Click "More info", then "Run anyway".
-            - After that, the app updates itself.
-
-            ### What's in this version
-
-            - TODO
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           prerelease: false
           uploadUpdaterJson: true

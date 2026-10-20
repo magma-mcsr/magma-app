@@ -6,6 +6,8 @@ version after an update, and each GitHub release uses the same text.
 ## 0.1.4
 
 - The settings panel and update notices use the same slim scrollbar as the website.
+- Following many players can no longer run into the MCSR Ranked API rate limit: every request
+  is spaced at least 1.5 seconds apart, and the app waits if the API asks it to slow down.
 
 ## 0.1.3
 

@@ -27,8 +27,10 @@ are still available and sends them to Magma for analysis.
 - When you close the window to the tray, the website is unloaded and only the background
   sync keeps running.
 - Downloads replays of the players **you** add, from the official public replay CDN.
-- Stays well within the official limits: at most one replay download every 26 seconds, and
-  API requests at least 1.2 seconds apart. It identifies itself as `magma-app/<version>`.
+- Stays within the official limits however many players you add: at most one replay download
+  every 26 seconds, and API requests at least 1.5 seconds apart (at most 400 per 10 minutes,
+  below the official 500). If the API still asks it to slow down, it waits as long as asked.
+  It identifies itself as `magma-app/<version>`.
 - Only downloads replays from the last 7 days that it has not handled before.
 - Optionally saves a copy of each replay to a folder you choose.
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**

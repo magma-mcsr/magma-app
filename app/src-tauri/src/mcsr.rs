@@ -16,8 +16,11 @@ const USER_AGENT: &str = concat!("magma-app/", env!("CARGO_PKG_VERSION"), " (mag
 /// roughly 3 downloads per minute; 26 s keeps us safely under that.
 const DOWNLOAD_SPACING: Duration = Duration::from_secs(26);
 const MAX_REPLAY_BYTES: usize = 64 << 20;
-/// Minimum spacing between background API calls (about 1 in 5 of the official limit).
-const API_SPACING: Duration = Duration::from_millis(1200);
+/// Minimum spacing between any two API calls. The official limit is 500 requests per
+/// 10 minutes per IP; 1.5 s caps the app at 400, however many players are followed.
+const API_SPACING: Duration = Duration::from_millis(1500);
+/// Wait after an API 429 when the response does not say how long.
+const API_RETRY_DEFAULT: Duration = Duration::from_secs(60);
 const MAX_RETRIES: u32 = 3;
 
 pub struct Client {
@@ -78,11 +81,36 @@ impl Client {
         Client { http, last_download: Mutex::new(None), last_api_call: Mutex::new(None) }
     }
 
+    /// Every API request goes through here, so the spacing holds for all of them.
     async fn api<T: for<'de> Deserialize<'de>>(&self, path: &str) -> Result<T, String> {
-        let res = self.http.get(format!("{API}{path}")).send().await.map_err(|e| format!("Network error: {e}"))?;
-        if res.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            return Err("The MCSR Ranked API is rate limiting requests. Try again in a few minutes.".into());
-        }
+        let mut attempts = 0;
+        let res = loop {
+            {
+                // Holding the lock serializes API calls app-wide.
+                let mut last = self.last_api_call.lock().await;
+                if let Some(wait) = last.and_then(|t| API_SPACING.checked_sub(t.elapsed())) {
+                    tokio::time::sleep(wait).await;
+                }
+                *last = Some(Instant::now());
+            }
+            let res = self.http.get(format!("{API}{path}")).send().await.map_err(|e| format!("Network error: {e}"))?;
+            if res.status() != reqwest::StatusCode::TOO_MANY_REQUESTS {
+                break res;
+            }
+            // Should not happen at this spacing (another program on the same network could
+            // share the limit). Wait as long as the API asks, then try again.
+            attempts += 1;
+            if attempts > MAX_RETRIES {
+                return Err("The MCSR Ranked API is rate limiting requests. Try again in a few minutes.".into());
+            }
+            let wait = res
+                .headers()
+                .get(reqwest::header::RETRY_AFTER)
+                .and_then(|v| v.to_str().ok())
+                .and_then(|v| v.parse::<u64>().ok())
+                .map_or(API_RETRY_DEFAULT, Duration::from_secs);
+            tokio::time::sleep(wait).await;
+        };
         let env: Envelope<T> = res.json().await.map_err(|e| format!("Unexpected API response: {e}"))?;
         match (env.status.as_str(), env.data) {
             ("success", Some(d)) => Ok(d),
@@ -103,16 +131,6 @@ impl Client {
     pub async fn recent_matches(&self, uuid: &str) -> Result<Vec<MatchSummary>, String> {
         if uuid.len() != 32 || !uuid.bytes().all(|b| b.is_ascii_hexdigit()) {
             return Err("invalid UUID".into());
-        }
-        // Stay far below the API limit (500 requests per 10 minutes).
-        {
-            let mut last = self.last_api_call.lock().await;
-            if let Some(t) = *last {
-                if let Some(wait) = API_SPACING.checked_sub(t.elapsed()) {
-                    tokio::time::sleep(wait).await;
-                }
-            }
-            *last = Some(Instant::now());
         }
         let bust = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
         self.api(&format!("/users/{uuid}/matches?count=50&_={bust}")).await

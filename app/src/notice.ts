@@ -4,6 +4,7 @@
 // - "whats-new": what changed in this version, from CHANGELOG.md (bundled at build time).
 import { invoke } from "@tauri-apps/api/core";
 import changelog from "../../CHANGELOG.md?raw";
+import { customScrollbar } from "./scrollbar";
 import "./notice.css";
 
 type Mode = { mode: "required" | "whats-new"; version: string };
@@ -105,6 +106,8 @@ function showWhatsNew(version: string) {
 const background = new Image();
 background.src = "/notice-bg.webp";
 const ready = background.decode().catch(() => {});
+
+customScrollbar(content);
 
 invoke<Mode>("notice_mode")
   .then(({ mode, version }) => (mode === "required" ? showRequired() : showWhatsNew(version)))

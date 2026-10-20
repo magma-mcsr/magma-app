@@ -3,6 +3,10 @@
 What changed in each version of the Magma MCSR app. The app shows the section for its own
 version after an update, and each GitHub release uses the same text.
 
+## 0.1.4
+
+- The settings panel and update notices use the same slim scrollbar as the website.
+
 ## 0.1.3
 
 - **Smoother What's new**

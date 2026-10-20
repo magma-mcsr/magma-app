@@ -1,0 +1,39 @@
+/* Same look as the website's scroll indicator: a 10px pill, translucent white. */
+.scroll-hidden {
+  scrollbar-width: none;
+}
+
+.scroll-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.scroll-track[hidden] {
+  display: none;
+}
+
+.scroll-thumb {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: grab;
+  transition: background-color 120ms;
+}
+
+.scroll-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.scroll-thumb.dragging {
+  background: rgba(255, 255, 255, 0.6);
+  cursor: grabbing;
+}

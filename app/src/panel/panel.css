@@ -73,6 +73,13 @@ header {
   color: var(--text);
 }
 
+/* The scrolling body and its custom scrollbar (src/scrollbar.ts) side by side. */
+.body-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
 .body {
   flex: 1;
   overflow-y: auto;

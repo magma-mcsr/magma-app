@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { customScrollbar } from "../scrollbar";
 import "./panel.css";
 
 type Tracked = { uuid: string; nickname: string };
@@ -175,6 +176,8 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
 function Panel({ init }: { init: Init }) {
   const [settings, setSettings] = useState(init.settings);
   const empty = settings.players.length === 0;
+  const body = useRef<HTMLDivElement>(null);
+  useEffect(() => customScrollbar(body.current!), []);
 
   useEffect(() => {
     const unlisten = listen<Settings>("settings-changed", ({ payload }) => setSettings(payload));
@@ -203,7 +206,8 @@ function Panel({ init }: { init: Init }) {
         </button>
       </header>
 
-      <div className="body">
+      <div className="body-row">
+      <div className="body" ref={body}>
         <section className="group">
           <div className="group-head">
             <h2 className="group-title">Replay sync</h2>
@@ -267,6 +271,7 @@ function Panel({ init }: { init: Init }) {
             v{init.version} · What's new
           </button>
         </footer>
+      </div>
       </div>
     </div>
   );

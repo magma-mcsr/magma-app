@@ -9,8 +9,8 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #0c0c0d;
-  color: #d9d9de;
+  background: #0a0a0a;
+  color: #fafafa;
   user-select: none;
 }
 
@@ -18,7 +18,7 @@ body {
   display: flex;
   align-items: center;
   height: 100%;
-  border-bottom: 1px solid #1f2024;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
 }
 
@@ -28,7 +28,7 @@ body {
   gap: 8px;
   padding: 0 12px 0 10px;
   font-weight: 600;
-  color: #f2f2f4;
+  color: #fafafa;
 }
 
 .logo {
@@ -55,12 +55,12 @@ button {
   width: 26px;
   height: 26px;
   border-radius: 6px;
-  color: #a1a2a8;
+  color: #a1a1a1;
 }
 
 .icon:hover {
-  background: #1f2024;
-  color: #f2f2f4;
+  background: #262626;
+  color: #fafafa;
 }
 
 .icon svg {
@@ -75,7 +75,7 @@ button {
 
 .section {
   padding-left: 10px;
-  color: #8b8d94;
+  color: #a1a1a1;
   white-space: nowrap;
 }
 
@@ -93,22 +93,22 @@ button {
   max-width: 280px;
   margin-right: 6px;
   padding: 0 11px;
-  border: 1px solid #26272b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
-  color: #a1a2a8;
+  color: #a1a1a1;
   font-size: 12px;
   white-space: nowrap;
 }
 
 .download:hover {
-  background: #1a1b1e;
-  color: #f2f2f4;
+  background: #262626;
+  color: #fafafa;
 }
 
 .download-name {
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #f2f2f4;
+  color: #fafafa;
 }
 
 .download[hidden] {
@@ -123,21 +123,21 @@ button {
 @keyframes download-land {
   40% {
     transform: scale(1.12);
-    border-color: #5aa9f0;
+    border-color: #51a2ff;
   }
 }
 
 .download[data-state="busy"] .dot {
-  background: #5aa9f0;
+  background: #51a2ff;
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 .download[data-state="done"] .dot {
-  background: #4caf7a;
+  background: #05df72;
 }
 
 .download[data-state="failed"] .dot {
-  background: #e0b341;
+  background: #ffba00;
 }
 
 /* A downloaded update: one click restarts into the new version. */
@@ -146,15 +146,15 @@ button {
   margin-right: 6px;
   padding: 0 11px;
   border-radius: 999px;
-  background: #f0743a;
-  color: #1a0d06;
+  background: #e5e5e5;
+  color: #171717;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .update:hover {
-  background: #f48a57;
+  background: rgba(229, 229, 229, 0.9);
 }
 
 .update[hidden] {
@@ -175,18 +175,18 @@ button {
   height: 26px;
   padding: 0 10px;
   border-radius: 6px;
-  color: #a1a2a8;
+  color: #a1a1a1;
   white-space: nowrap;
 }
 
 .tab:hover {
-  background: #1f2024;
-  color: #f2f2f4;
+  background: #262626;
+  color: #fafafa;
 }
 
 .tab[aria-selected="true"] {
-  background: #26272b;
-  color: #f2f2f4;
+  background: #262626;
+  color: #fafafa;
 }
 
 .tab:disabled {
@@ -204,26 +204,26 @@ button {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #5c5e66;
+  background: #737373;
 }
 
 .tab[data-state="ready"] .dot {
-  background: #4caf7a;
+  background: #05df72;
 }
 
 .tab[data-state="paused"] .dot {
-  background: #8b8d94;
+  background: #a1a1a1;
 }
 
 /* Checking or downloading. */
 .tab[data-state="busy"] .dot {
-  background: #5aa9f0;
+  background: #51a2ff;
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 /* Some replays will expire before they can be downloaded. */
 .tab[data-state="warning"] .dot {
-  background: #e0b341;
+  background: #ffba00;
   animation: pulse 1.4s ease-in-out infinite;
 }
 
@@ -235,7 +235,7 @@ button {
 
 /* Needs the user's attention: the brand orange. */
 .tab[data-state="setup"] .dot {
-  background: #f0743a;
+  background: #ff6900;
 }
 
 .window {
@@ -251,7 +251,7 @@ button {
   display: grid;
   place-items: center;
   width: 34px;
-  color: #a1a2a8;
+  color: #a1a1a1;
 }
 
 .win.close {
@@ -269,8 +269,8 @@ button {
 }
 
 .win:hover .box {
-  background: #1f2024;
-  color: #f2f2f4;
+  background: #262626;
+  color: #fafafa;
 }
 
 .win.close:hover .box {

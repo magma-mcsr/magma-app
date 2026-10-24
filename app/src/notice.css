@@ -14,7 +14,7 @@ body {
 /* Everything fades in together once the background image is ready, instead of the
    card appearing first and the picture popping in after it. */
 body {
-  background: #0b0b0d;
+  background: #0a0a0a;
 }
 
 .backdrop {
@@ -35,9 +35,9 @@ body.ready .backdrop {
   padding: 24px;
   box-sizing: border-box;
   background:
-    linear-gradient(rgba(6, 8, 14, 0.45), rgba(6, 8, 14, 0.55)),
+    linear-gradient(rgba(10, 10, 10, 0.45), rgba(10, 10, 10, 0.55)),
     url("/notice-bg.webp") center / cover no-repeat,
-    #0b0b0d;
+    #0a0a0a;
 }
 
 .card {
@@ -45,9 +45,9 @@ body.ready .backdrop {
   padding: 22px 22px 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  background: rgba(18, 18, 22, 0.78);
+  background: rgba(23, 23, 23, 0.85);
   backdrop-filter: blur(14px);
-  color: #e7e7ea;
+  color: #fafafa;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
@@ -71,7 +71,7 @@ h1 {
 #content {
   flex: 1;
   overflow-y: auto;
-  color: #a1a2a8;
+  color: #a1a1a1;
   line-height: 1.55;
 }
 
@@ -97,7 +97,7 @@ li ul li + li {
 }
 
 strong {
-  color: #e7e7ea;
+  color: #fafafa;
   font-weight: 600;
 }
 
@@ -128,20 +128,20 @@ button:disabled {
 
 .primary {
   border: none;
-  background: #f0743a;
-  color: #1a0d06;
+  background: #e5e5e5;
+  color: #171717;
 }
 
 .primary:hover:not(:disabled) {
-  background: #f48a57;
+  background: rgba(229, 229, 229, 0.9);
 }
 
 .secondary {
-  border: 1px solid #2a2b30;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   background: none;
-  color: #e7e7ea;
+  color: #fafafa;
 }
 
 .secondary:hover:not(:disabled) {
-  background: #1f2024;
+  background: #262626;
 }

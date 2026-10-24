@@ -31,6 +31,21 @@ function Avatar({ uuid, name }: { uuid: string; name: string }) {
 }
 
 /** Small info icon with a hover tooltip. */
+/** Ask for the first player's newest matches right away; the label says so for a moment. */
+function CheckNow() {
+  const [busy, setBusy] = useState(false);
+  const click = () => {
+    setBusy(true);
+    invoke("check_now").catch(console.error);
+    setTimeout(() => setBusy(false), 3000);
+  };
+  return (
+    <button className="link" disabled={busy} onClick={click}>
+      {busy ? "Checking…" : "Check now"}
+    </button>
+  );
+}
+
 function InfoTip({ text }: { text: string }) {
   return (
     <span className="tip" tabIndex={0} aria-label={text}>
@@ -248,6 +263,15 @@ function Panel({ init }: { init: Init }) {
             </p>
           )}
           <Players settings={settings} setSettings={setSettings} />
+          {!empty && (
+            <div className="setting">
+              <span>
+                New matches of {settings.players[0].nickname}{" "}
+                <InfoTip text="The first player in the list is checked every 15 seconds, so a match they just finished is uploaded within moments. Check now looks right away." />
+              </span>
+              <CheckNow />
+            </div>
+          )}
           <div className="setting">
             <span>
               Keep a copy of replays{" "}

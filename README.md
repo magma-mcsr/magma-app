@@ -28,6 +28,9 @@ are still available and sends them to Magma for analysis.
   sync keeps running.
 - Downloads replays of the players **you** add, from the official public replay CDN, in the
   order you list them: if there are more than it can download, the top of your list comes first.
+  The first player in your list (usually you) is also checked every 15 seconds for matches that
+  ended in the last hour, so a match just played is uploaded within moments; "Check now" in the
+  settings does that check right away. These checks count toward the API limit below.
 - Stays within the official limits however many players you add: replay downloads start at
   least 21 seconds apart (at most 3 a minute), and API requests at least 1.5 seconds apart (at
   most 400 per 10 minutes, below the official 500). If it is rate limited anyway (for example

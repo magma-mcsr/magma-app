@@ -64,6 +64,7 @@ pub fn run() {
             panel::set_start_with_windows,
             panel::set_run_in_tray,
             panel::set_paused,
+            panel::check_now,
             panel::network_options,
             panel::set_network,
             panel::close_panel,

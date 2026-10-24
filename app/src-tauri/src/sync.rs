@@ -10,11 +10,17 @@
 //! matches and sorts again, so the top of the list is never stuck behind a backlog, and
 //! players further down get whatever capacity is left.
 //!
+//! The first player in the list (usually the user) is also checked on their own every
+//! OWN_CHECK_INTERVAL, in between everything else, so a match they just played is uploaded
+//! within seconds instead of waiting for the next round. The settings panel can ask for that
+//! check right away.
+//!
 //! The server never tells the app what to download. The only thing the app asks it is
 //! "do you already have this match?", which can only skip downloads.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -44,6 +50,12 @@ const JOURNAL_KEEP_SECS: i64 = 14 * 24 * 3600;
 /// The server accepts 10 uploads per minute per IP. A backlog (after an outage) is sent
 /// no faster than this so it never hits that limit.
 const UPLOAD_SPACING: Duration = Duration::from_secs(7);
+/// How often the first player's newest matches are checked, in between everything else.
+const OWN_CHECK_INTERVAL: Duration = Duration::from_secs(15);
+/// How many of their newest matches that check asks for.
+const OWN_CHECK_COUNT: u32 = 5;
+/// Only matches that ended this recently are taken out of the normal order.
+const OWN_RECENT_SECS: i64 = 3600;
 /// While the server refuses this app version, ask again this often.
 const UPDATE_RECHECK: Duration = Duration::from_secs(15 * 60);
 
@@ -70,11 +82,19 @@ pub struct Live {
 pub struct Engine {
     wake: Notify,
     live: std::sync::Mutex<Live>,
+    /// Check the first player's newest matches at the next chance, without waiting.
+    own_now: AtomicBool,
 }
 
 impl Engine {
     pub fn new() -> Self {
-        Engine { wake: Notify::new(), live: std::sync::Mutex::new(Live::default()) }
+        Engine { wake: Notify::new(), live: std::sync::Mutex::new(Live::default()), own_now: AtomicBool::new(false) }
+    }
+
+    /// Check the first player's newest matches now (the "Check now" button).
+    pub fn check_own_now(&self) {
+        self.own_now.store(true, Ordering::SeqCst);
+        self.wake.notify_one();
     }
 
     /// Start a round now (for example after a player was added or sync was resumed).
@@ -165,6 +185,8 @@ pub async fn run(app: AppHandle) {
     let mut known: HashMap<i64, MatchSummary> = HashMap::new();
     // Where the next turn starts among the players after ALWAYS_CHECK.
     let mut turn: usize = 0;
+    // When the first player's newest matches were last checked.
+    let mut own_checked = tokio::time::Instant::now() - OWN_CHECK_INTERVAL;
 
     loop {
         let engine = app.state::<Engine>();
@@ -209,6 +231,7 @@ pub async fn run(app: AppHandle) {
             turn = (first + n) % rest.len();
         }
         for player in to_check {
+            check_own(&app, &client, &uploader, &mut journal, &data_dir, &pending_dir, &mut upload_blocked_until, &mut own_checked).await;
             match client.recent_matches(&player.uuid).await {
                 Ok(matches) => {
                     for m in matches.into_iter().filter(|m| m.replay_exists > 0) {
@@ -240,6 +263,7 @@ pub async fn run(app: AppHandle) {
         let started = tokio::time::Instant::now();
         let mut more_waiting = false;
         for (k, (_, m)) in queue.iter().enumerate() {
+            check_own(&app, &client, &uploader, &mut journal, &data_dir, &pending_dir, &mut upload_blocked_until, &mut own_checked).await;
             let settings = app.state::<Store>().get();
             if settings.paused || settings.players.is_empty() || engine.live().update_required {
                 break;
@@ -248,49 +272,16 @@ pub async fn run(app: AppHandle) {
                 more_waiting = true;
                 break;
             }
-            // Look the connection up again before each download: a phone or mobile connection
-            // that reconnects comes back with a new address, and this follows it right away.
-            let address = crate::network::local_address(settings.network.as_deref());
-            client.bind(address);
-            uploader.bind(address);
+            // Already handled by the check of the first player's newest matches.
+            if journal.processed.contains_key(&m.id) {
+                continue;
+            }
             engine.set(&app, |l| {
                 l.phase = Phase::Downloading;
                 l.done = k;
             });
-            // Magma already has it and no local copy is wanted: nothing to do.
-            if !settings.keep_copy {
-                match uploader.has(m.id).await {
-                    Lookup::Stored => {
-                        journal.mark(&data_dir, m.id);
-                        continue;
-                    }
-                    Lookup::UpdateRequired => {
-                        app.state::<Updates>().require(&app);
-                        break;
-                    }
-                    Lookup::Missing => {}
-                }
-            }
-            match client.download_replay(m.id, m.replay_exists).await {
-                Ok(bytes) => {
-                    if settings.keep_copy {
-                        if let Some(folder) = &settings.copy_folder {
-                            let path = Path::new(folder).join(file_name(m, &settings.players));
-                            if std::fs::create_dir_all(folder).is_ok() && !path.exists() {
-                                if let Err(e) = std::fs::write(&path, &bytes) {
-                                    eprintln!("[sync] could not save {}: {e}", path.display());
-                                }
-                            }
-                        }
-                    }
-                    // Held until the upload succeeds, so a closed app or a server outage loses nothing.
-                    let _ = std::fs::write(pending_dir.join(format!("{}.rrf", m.id)), &bytes);
-                    journal.mark(&data_dir, m.id);
-                    flush_uploads(&app, &uploader, &pending_dir, &mut upload_blocked_until).await;
-                }
-                // Gone from the CDN: nothing more can be done for this one.
-                Err(e) if e.contains("no longer available") || e.contains("no replay") => journal.mark(&data_dir, m.id),
-                Err(e) => eprintln!("[sync] download {}: {e}", m.id),
+            if !fetch(&app, &client, &uploader, m, &mut journal, &data_dir, &pending_dir, &mut upload_blocked_until).await {
+                break;
             }
         }
         known.retain(|id, _| !journal.processed.contains_key(id));
@@ -304,7 +295,118 @@ pub async fn run(app: AppHandle) {
         if more_waiting {
             continue;
         }
-        let _ = tokio::time::timeout(ROUND_INTERVAL, engine.wake.notified()).await;
+        // Wait for the next round, still checking the first player's newest matches. A wake
+        // from anything but the "Check now" button starts the next round right away.
+        let idle = tokio::time::Instant::now();
+        while idle.elapsed() < ROUND_INTERVAL {
+            let woke = tokio::time::timeout(OWN_CHECK_INTERVAL, engine.wake.notified()).await.is_ok();
+            if woke && !engine.own_now.load(Ordering::SeqCst) {
+                break;
+            }
+            check_own(&app, &client, &uploader, &mut journal, &data_dir, &pending_dir, &mut upload_blocked_until, &mut own_checked).await;
+            engine.set(&app, |l| l.phase = Phase::Idle);
+        }
+    }
+}
+
+/// Download one replay, keep a copy if wanted, and upload it. Returns false when sync has to
+/// stop because the server requires a newer app.
+#[allow(clippy::too_many_arguments)]
+async fn fetch(
+    app: &AppHandle,
+    client: &Client,
+    uploader: &Uploader,
+    m: &MatchSummary,
+    journal: &mut Journal,
+    data_dir: &Path,
+    pending_dir: &Path,
+    upload_blocked_until: &mut Option<tokio::time::Instant>,
+) -> bool {
+    let settings = app.state::<Store>().get();
+    // Look the connection up again before each download: a phone or mobile connection
+    // that reconnects comes back with a new address, and this follows it right away.
+    let address = crate::network::local_address(settings.network.as_deref());
+    client.bind(address);
+    uploader.bind(address);
+    // Magma already has it and no local copy is wanted: nothing to do.
+    if !settings.keep_copy {
+        match uploader.has(m.id).await {
+            Lookup::Stored => {
+                journal.mark(data_dir, m.id);
+                return true;
+            }
+            Lookup::UpdateRequired => {
+                app.state::<Updates>().require(app);
+                return false;
+            }
+            Lookup::Missing => {}
+        }
+    }
+    match client.download_replay(m.id, m.replay_exists).await {
+        Ok(bytes) => {
+            if settings.keep_copy {
+                if let Some(folder) = &settings.copy_folder {
+                    let path = Path::new(folder).join(file_name(m, &settings.players));
+                    if std::fs::create_dir_all(folder).is_ok() && !path.exists() {
+                        if let Err(e) = std::fs::write(&path, &bytes) {
+                            eprintln!("[sync] could not save {}: {e}", path.display());
+                        }
+                    }
+                }
+            }
+            // Held until the upload succeeds, so a closed app or a server outage loses nothing.
+            let _ = std::fs::write(pending_dir.join(format!("{}.rrf", m.id)), &bytes);
+            journal.mark(data_dir, m.id);
+            flush_uploads(app, uploader, pending_dir, upload_blocked_until).await;
+        }
+        // Gone from the CDN: nothing more can be done for this one.
+        Err(e) if e.contains("no longer available") || e.contains("no replay") => journal.mark(data_dir, m.id),
+        Err(e) => eprintln!("[sync] download {}: {e}", m.id),
+    }
+    true
+}
+
+/// Every OWN_CHECK_INTERVAL (or right away after "Check now"), ask for the first player's
+/// newest matches and handle the ones that ended within the last hour, newest first.
+#[allow(clippy::too_many_arguments)]
+async fn check_own(
+    app: &AppHandle,
+    client: &Client,
+    uploader: &Uploader,
+    journal: &mut Journal,
+    data_dir: &Path,
+    pending_dir: &Path,
+    upload_blocked_until: &mut Option<tokio::time::Instant>,
+    checked: &mut tokio::time::Instant,
+) {
+    let engine = app.state::<Engine>();
+    let asked = engine.own_now.swap(false, Ordering::SeqCst);
+    if !asked && checked.elapsed() < OWN_CHECK_INTERVAL {
+        return;
+    }
+    *checked = tokio::time::Instant::now();
+    let settings = app.state::<Store>().get();
+    if settings.paused || engine.live().update_required {
+        return;
+    }
+    let Some(first) = settings.players.first() else { return };
+    let matches = match client.newest_matches(&first.uuid, OWN_CHECK_COUNT).await {
+        Ok(m) => m,
+        Err(e) => {
+            eprintln!("[sync] newest matches for {}: {e}", first.nickname);
+            return;
+        }
+    };
+    let mut fresh: Vec<MatchSummary> = matches
+        .into_iter()
+        .filter(|m| m.replay_exists > 0 && m.date + OWN_RECENT_SECS > now() && !journal.processed.contains_key(&m.id))
+        .collect();
+    fresh.sort_by_key(|m| std::cmp::Reverse(m.date));
+    for m in &fresh {
+        engine.set(app, |l| l.phase = Phase::Downloading);
+        if !fetch(app, client, uploader, m, journal, data_dir, pending_dir, upload_blocked_until).await {
+            break;
+        }
     }
 }
 

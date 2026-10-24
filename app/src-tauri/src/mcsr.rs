@@ -156,6 +156,15 @@ impl Client {
         self.api(&format!("/users/{uuid}/matches?count=50&_={bust}")).await
     }
 
+    /// A player's newest few matches, for the frequent check of the first player in the list.
+    pub async fn newest_matches(&self, uuid: &str, count: u32) -> Result<Vec<MatchSummary>, String> {
+        if uuid.len() != 32 || !uuid.bytes().all(|b| b.is_ascii_hexdigit()) {
+            return Err("invalid UUID".into());
+        }
+        let bust = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+        self.api(&format!("/users/{uuid}/matches?count={count}&_={bust}")).await
+    }
+
     /// Download one replay into memory, respecting the CDN rate limit.
     pub async fn download_replay(
         &self,

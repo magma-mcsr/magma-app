@@ -235,6 +235,14 @@ pub fn set_paused(webview: Webview, store: State<'_, Store>, paused: bool) -> Re
     apply(webview.app_handle(), &store, |s| s.paused = paused)
 }
 
+/// "Check now": look for the first player's newest matches right away.
+#[tauri::command]
+pub fn check_now(webview: Webview) -> Result<(), String> {
+    guard(&webview)?;
+    webview.app_handle().state::<crate::sync::Engine>().check_own_now();
+    Ok(())
+}
+
 /// Network connections the user can sync through (see network.rs).
 #[tauri::command]
 pub fn network_options(webview: Webview) -> Result<Vec<crate::network::Connection>, String> {

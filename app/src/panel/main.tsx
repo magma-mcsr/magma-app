@@ -476,14 +476,27 @@ function RecentMatches({ me }: { me: Tracked }) {
   );
 }
 
+type Page = "replays" | "settings" | "about";
+const PAGES: { id: Page; label: string }[] = [
+  { id: "replays", label: "Replays" },
+  { id: "settings", label: "Settings" },
+  { id: "about", label: "About" },
+];
+const REPO = "https://github.com/magma-mcsr/magma-app";
+
 function Panel({ init }: { init: Init }) {
   const [settings, setSettings] = useState(init.settings);
   const [status, setStatus] = useState(init.status);
+  const [page, setPage] = useState<Page>("replays");
   // The first-run setup may still be looking for this computer's Minecraft name
   const [pending, setPending] = useState(init.setupPending);
   const empty = settings.players.length === 0;
   const body = useRef<HTMLDivElement>(null);
   useEffect(() => customScrollbar(body.current!), []);
+  // A block body: scrollTo returns a promise in newer WebView2, and an effect may only return a cleanup function
+  useEffect(() => {
+    body.current?.scrollTo(0, 0);
+  }, [page]);
 
   useEffect(() => {
     const a = listen<Settings>("settings-changed", ({ payload }) => setSettings(payload));
@@ -497,9 +510,133 @@ function Panel({ init }: { init: Init }) {
   }, []);
 
   const set = (cmd: string, args: Record<string, unknown>) => invoke<Settings>(cmd, args).then(setSettings).catch(console.error);
+  const link = (url: string, text: string) => (
+    <button className="link" onClick={() => invoke("open_link", { url }).catch(console.error)}>
+      {text}
+    </button>
+  );
+
+  const replays = (
+    <>
+      <header className="page-head">
+        <h1>Replays</h1>
+        <span className={`status ${status.state}`}>{status.label}</span>
+        <span className="spacer" />
+        {/* Master switch for sync only: on = syncing, off = paused. */}
+        <Toggle label="Sync replays" checked={!settings.paused} onChange={(on) => set("set_paused", { paused: !on })} />
+      </header>
+
+      {settings.autoTrackedNotice && <SetupNotice me={settings.players[0]} onSettings={setSettings} />}
+
+      <RecentMatches me={settings.players[0]} />
+
+      <section className="card">
+        <Players settings={settings} setSettings={setSettings} />
+      </section>
+
+      <section className="card">
+        <h2 className="card-title">Sync options</h2>
+        <div className="setting">
+          <span>
+            Keep a copy of replays{" "}
+            <InfoTip text="Saved to your MCSR Ranked replay folder when the app finds it, so they show up under My Replays in game." />
+          </span>
+          <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
+        </div>
+        {settings.keepCopy && (
+          // Belongs to the toggle above, so it is indented under it.
+          <div className="sub">
+            <div className="folder">
+              {/* The folder icon is a familiar enough convention to stand alone; the tooltip names it. */}
+              <span className="tip">
+                <button className="icon-button" aria-label="Change folder" onClick={() => set("choose_folder", {})}>
+                  <svg viewBox="0 0 16 16" aria-hidden>
+                    <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.5h5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
+                  </svg>
+                </button>
+                <span className="bubble short" role="tooltip">
+                  Change folder
+                </span>
+              </span>
+              <span className="path">{settings.copyFolder ?? init.defaultFolder}</span>
+            </div>
+            <div className="example">{EXAMPLE_FILE}</div>
+          </div>
+        )}
+        <div className="setting">
+          <span>
+            Network{" "}
+            <InfoTip text="Which connection downloads and uploads go through. Pick a different one than other computers syncing on the same network: each connection has its own download limit." />
+          </span>
+          <NetworkPicker value={settings.network} onChange={(name) => set("set_network", { name })} />
+        </div>
+      </section>
+    </>
+  );
+
+  const appSettings = (
+    <>
+      <header className="page-head">
+        <h1>Settings</h1>
+      </header>
+      <section className="card">
+        <div className="setting">
+          <span>Start with Windows</span>
+          <Toggle label="Start with Windows" checked={settings.startWithWindows} onChange={(v) => set("set_start_with_windows", { enabled: v })} />
+        </div>
+        <div className="setting">
+          <span>
+            Keep running in the tray{" "}
+            <InfoTip text="Closing the window keeps replay sync running in the background. Quit from the tray icon." />
+          </span>
+          <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
+        </div>
+      </section>
+    </>
+  );
+
+  const about = (
+    <>
+      <header className="page-head">
+        <h1>About</h1>
+      </header>
+      <section className="card">
+        <div className="setting">
+          <span>Magma MCSR app v{init.version}</span>
+          <button className="link" onClick={() => invoke("show_whats_new").catch(console.error)}>
+            What's new
+          </button>
+        </div>
+        <p className="about-text">
+          The Website tab is magmamcsr.com, the same as in your browser. The app adds replay sync: it downloads the
+          replays of the players you list from MCSR Ranked's public replay server and uploads them to Magma for analysis.
+          Analyses are public.
+        </p>
+        <p className="about-text">
+          It is open source, so you can check exactly what it reads, downloads and sends. {link(LEARN_MORE, "What it does")}
+          {" · "}
+          {link(REPO, "Source code")}
+          {" · "}
+          {link("https://magmamcsr.com/", "magmamcsr.com")}
+        </p>
+        <p className="about-text muted">Magma MCSR is a community project, not affiliated with MCSR Ranked.</p>
+      </section>
+    </>
+  );
 
   return (
-    <div className="panel">
+    <div className={empty ? "panel" : "panel with-nav"}>
+      {!empty && (
+        // Three plain text entries: short words read faster than icons here.
+        <nav className="sidebar" aria-label="App">
+          {PAGES.map((p) => (
+            <button key={p.id} className="nav-item" aria-current={page === p.id ? "page" : undefined} onClick={() => setPage(p.id)}>
+              <span>{p.label}</span>
+              {p.id === "replays" && <span className={`nav-dot ${status.state}`} title={status.label} />}
+            </button>
+          ))}
+        </nav>
+      )}
       <div className="body-row">
         <div className="body" ref={body}>
           <div className="page">
@@ -507,77 +644,12 @@ function Panel({ init }: { init: Init }) {
               <p className="muted looking">Looking for your Minecraft account on this computer…</p>
             ) : empty ? (
               <Welcome onSettings={setSettings} />
+            ) : page === "replays" ? (
+              replays
+            ) : page === "settings" ? (
+              appSettings
             ) : (
-              <>
-                <header className="page-head">
-                  <h1>Replay sync</h1>
-                  <span className={`status ${status.state}`}>{status.label}</span>
-                  <span className="spacer" />
-                  {/* Master switch for sync only: on = syncing, off = paused. */}
-                  <Toggle label="Sync replays" checked={!settings.paused} onChange={(on) => set("set_paused", { paused: !on })} />
-                </header>
-
-                {settings.autoTrackedNotice && <SetupNotice me={settings.players[0]} onSettings={setSettings} />}
-
-                <RecentMatches me={settings.players[0]} />
-
-                <section className="card">
-                  <Players settings={settings} setSettings={setSettings} />
-                </section>
-
-                <section className="card">
-                  <h2 className="card-title">Settings</h2>
-                  <div className="setting">
-                    <span>
-                      Keep a copy of replays{" "}
-                      <InfoTip text="Saved to your MCSR Ranked replay folder when the app finds it, so they show up under My Replays in game." />
-                    </span>
-                    <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
-                  </div>
-                  {settings.keepCopy && (
-                    // Belongs to the toggle above, so it is indented under it.
-                    <div className="sub">
-                      <div className="folder">
-                        {/* The folder icon is a familiar enough convention to stand alone; the tooltip names it. */}
-                        <span className="tip">
-                          <button className="icon-button" aria-label="Change folder" onClick={() => set("choose_folder", {})}>
-                            <svg viewBox="0 0 16 16" aria-hidden>
-                              <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.5h5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
-                            </svg>
-                          </button>
-                          <span className="bubble short" role="tooltip">
-                            Change folder
-                          </span>
-                        </span>
-                        <span className="path">{settings.copyFolder ?? init.defaultFolder}</span>
-                      </div>
-                      <div className="example">{EXAMPLE_FILE}</div>
-                    </div>
-                  )}
-                  <div className="setting">
-                    <span>
-                      Network{" "}
-                      <InfoTip text="Which connection downloads and uploads go through. Pick a different one than other computers syncing on the same network: each connection has its own download limit." />
-                    </span>
-                    <NetworkPicker value={settings.network} onChange={(name) => set("set_network", { name })} />
-                  </div>
-                  <div className="setting">
-                    <span>Start with Windows</span>
-                    <Toggle label="Start with Windows" checked={settings.startWithWindows} onChange={(v) => set("set_start_with_windows", { enabled: v })} />
-                  </div>
-                  <div className="setting">
-                    <span>Keep running in the tray</span>
-                    <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
-                  </div>
-                </section>
-
-                <footer>
-                  <span>Replays are uploaded to Magma and analyses are public. {LEARN}</span>
-                  <button className="link version" onClick={() => invoke("show_whats_new").catch(console.error)}>
-                    v{init.version} · What's new
-                  </button>
-                </footer>
-              </>
+              about
             )}
           </div>
         </div>

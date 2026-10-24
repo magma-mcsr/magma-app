@@ -89,3 +89,16 @@ impl Store {
         Ok((result, s.clone()))
     }
 }
+
+/// Where settings, the sync journal and pending uploads live. Development builds can use another
+/// folder with MAGMA_APP_DATA, to try a first run without touching the installed app's data.
+pub fn app_dir(app: &tauri::AppHandle) -> tauri::Result<PathBuf> {
+    #[cfg(debug_assertions)]
+    if let Some(dir) = std::env::var_os("MAGMA_APP_DATA") {
+        let dir = PathBuf::from(dir);
+        let _ = std::fs::create_dir_all(&dir);
+        return Ok(dir);
+    }
+    use tauri::Manager;
+    app.path().app_config_dir()
+}

@@ -43,7 +43,7 @@ pub enum Notice {
 /// Which notice is showing, for the notice page when it loads.
 #[derive(Default)]
 pub struct NoticeState(Mutex<Option<Notice>>);
-const SITE_LABEL: &str = "site";
+pub(crate) const SITE_LABEL: &str = "site";
 
 /// Whether the settings panel is showing.
 #[derive(Default)]

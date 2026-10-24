@@ -174,7 +174,7 @@ fn file_name(m: &MatchSummary, listed: &[TrackedPlayer]) -> String {
 // ---------- the loop ----------
 
 pub async fn run(app: AppHandle) {
-    let Ok(data_dir) = app.path().app_data_dir() else { return };
+    let Ok(data_dir) = crate::settings::app_dir(&app) else { return };
     let pending_dir = data_dir.join("pending-uploads");
     let _ = std::fs::create_dir_all(&pending_dir);
     let mut journal = Journal::load(&data_dir);

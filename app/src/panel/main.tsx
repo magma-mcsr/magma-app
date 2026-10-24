@@ -90,8 +90,34 @@ function NetworkPicker({ value, onChange }: { value: string | null; onChange: (n
   );
 }
 
+/** First run: Minecraft names that played MCSR Ranked on this computer, one click to track. */
+function Found({ onAdded }: { onAdded: (s: Settings) => void }) {
+  const [found, setFound] = useState<Tracked[]>([]);
+  useEffect(() => {
+    invoke<Tracked[]>("detect_accounts").then(setFound).catch(() => setFound([]));
+  }, []);
+  async function track(p: Tracked) {
+    onAdded(await invoke<Settings>("add_player", { player: { uuid: p.uuid, nickname: p.nickname } }));
+    invoke("show_player_matches", { nickname: p.nickname }).catch(console.error);
+  }
+  if (found.length === 0) return null;
+  return (
+    <div className="found">
+      {found.map((p) => (
+        <button key={p.uuid} className="found-player" onClick={() => track(p)}>
+          <Avatar uuid={p.uuid} name={p.nickname} />
+          <span className="name">
+            Track <strong>{p.nickname}</strong>
+          </span>
+        </button>
+      ))}
+      <p className="found-note">Found on this computer.</p>
+    </div>
+  );
+}
+
 /** Name input that looks the player up on the official API before adding them. */
-function AddPlayer({ onAdded, autoFocus }: { onAdded: (s: Settings) => void; autoFocus?: boolean }) {
+function AddPlayer({ onAdded, first }: { onAdded: (s: Settings) => void; first?: boolean }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,6 +129,8 @@ function AddPlayer({ onAdded, autoFocus }: { onAdded: (s: Settings) => void; aut
     try {
       const p = await invoke<Tracked>("lookup_player", { name });
       onAdded(await invoke<Settings>("add_player", { player: { uuid: p.uuid, nickname: p.nickname } }));
+      // The first player is usually yourself: show where your matches will appear
+      if (first) invoke("show_player_matches", { nickname: p.nickname }).catch(console.error);
       setName("");
     } catch (err) {
       setError(String(err));
@@ -115,9 +143,9 @@ function AddPlayer({ onAdded, autoFocus }: { onAdded: (s: Settings) => void; aut
       <input
         value={name}
         onChange={(e) => setName(e.currentTarget.value)}
-        placeholder="+ Add player"
+        placeholder={first ? "Your Minecraft name" : "+ Add player"}
         spellCheck={false}
-        autoFocus={autoFocus}
+        autoFocus={first}
         disabled={busy}
       />
       {error && <div className="error">{error}</div>}
@@ -207,7 +235,8 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
           </button>
         </div>
       ))}
-      <AddPlayer onAdded={setSettings} autoFocus={order.length === 0} />
+      {order.length === 0 && <Found onAdded={setSettings} />}
+      <AddPlayer onAdded={setSettings} first={order.length === 0} />
     </section>
   );
 }
@@ -258,8 +287,9 @@ function Panel({ init }: { init: Init }) {
           {empty && (
             // First run: the full explanation, shown once before anything is downloaded.
             <p className="notice intro">
-              Add the players whose replays you want to keep. New replays are downloaded in the background and uploaded to
-              Magma for analysis. Analyses are public. {learnMore}
+              Add yourself first: your new matches are downloaded in the background and uploaded to Magma for analysis, and
+              show up on your Matches page about a minute after they end. You can add other players too. Analyses are public.{" "}
+              {learnMore}
             </p>
           )}
           <Players settings={settings} setSettings={setSettings} />

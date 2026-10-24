@@ -60,7 +60,8 @@ fn default_folder(app: &AppHandle) -> Option<String> {
 /// The `mcsrranked\replay` folder of an MCSR Ranked install, if one exists. Looks in the
 /// usual places of the common launchers; with several, takes the most recently used.
 fn game_replay_folder(app: &AppHandle) -> Option<std::path::PathBuf> {
-    find_game_replay_folder(app.path().data_dir().ok().as_deref(), app.path().home_dir().ok().as_deref())
+    let (roaming, home) = crate::game::roots(app);
+    find_game_replay_folder(roaming.as_deref(), home.as_deref())
 }
 
 /// `roaming` is %APPDATA%, `home` the user's home folder (separate so tests can use fake ones).
@@ -146,6 +147,34 @@ mod tests {
         assert_eq!(found.components().collect::<PathBuf>(), newer.components().collect::<PathBuf>());
         let _ = std::fs::remove_dir_all(&root);
     }
+}
+
+/// Minecraft names that played MCSR Ranked on this computer and have a Ranked profile, for the
+/// first-run suggestion (see game.rs for what is read). At most three are looked up.
+#[tauri::command]
+pub async fn detect_accounts(webview: Webview, client: State<'_, Client>) -> Result<Vec<Player>, String> {
+    guard(&webview)?;
+    let (roaming, home) = crate::game::roots(webview.app_handle());
+    let names = crate::game::account_names(&crate::game::instances(roaming.as_deref(), home.as_deref()));
+    let mut found = Vec::new();
+    for name in names.into_iter().take(3) {
+        if let Ok(p) = client.player(&name).await {
+            found.push(p);
+        }
+    }
+    Ok(found)
+}
+
+/// Show a player's match list on the website, right after they add themselves.
+#[tauri::command]
+pub fn show_player_matches(webview: Webview, nickname: String) -> Result<(), String> {
+    guard(&webview)?;
+    if nickname.is_empty() || nickname.len() > 16 || !nickname.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        return Err("invalid name".into());
+    }
+    let url = format!("{}/ranked/player/{nickname}/matches", crate::shell::SITE_URL).parse().map_err(|e| format!("{e}"))?;
+    let site = webview.app_handle().get_webview(crate::shell::SITE_LABEL).ok_or("no website view")?;
+    site.navigate(url).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

@@ -265,6 +265,35 @@ h2 {
   margin-top: 6px;
 }
 
+/* First run: the accounts found on this computer, one click each. */
+.found {
+  margin-top: 6px;
+}
+
+.found-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: rgba(240, 116, 58, 0.12);
+  color: var(--text);
+  text-align: left;
+}
+
+.found-player:hover {
+  background: rgba(240, 116, 58, 0.22);
+}
+
+.found-note {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .lookup input {
   width: 100%;
   padding: 7px 10px;

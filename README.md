@@ -42,6 +42,10 @@ are still available and sends them to Magma for analysis.
 - Only downloads replays from the last 7 days that it has not handled before.
 - Optionally saves a copy of each replay to a folder you choose (by default your MCSR Ranked
   replay folder, found by looking in the usual launcher folders, so copies show up in game).
+- On first run, with no players listed yet, it looks for MCSR Ranked in the usual launcher
+  folders and reads the first part of each instance's `logs/latest.log`, where Minecraft writes
+  "Setting user: <name>" when it starts. The names it finds are offered as "Track <name>"; nothing
+  is added until you click. The game does not need to be running.
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**
 - Checks this repository's GitHub Releases for updates. A new version is installed when the app
   starts with Windows, or when you click "Update" in the title bar; it never closes on you
@@ -61,7 +65,8 @@ are still available and sends them to Magma for analysis.
 
 ## What it does not do
 
-- It does not read any other files on your computer.
+- It does not read any other files on your computer. It never opens launcher account files,
+  which hold login tokens.
 - It does not ask for your Minecraft, Microsoft or MCSR login.
 - The website shown in the window cannot use any of the app's native features (your files,
   settings, replay sync). Only the app's own title bar and settings panel can.
@@ -78,6 +83,7 @@ are still available and sends them to Magma for analysis.
 | Which pages may call native features | `app/src-tauri/capabilities/default.json` |
 | Window, title bar and tray; where links and downloads go | `app/src-tauri/src/shell.rs` |
 | Settings and where they are stored | `app/src-tauri/src/settings.rs` |
+| Finding MCSR Ranked and the names that played on this computer | `app/src-tauri/src/game.rs` |
 | Updates | `app/src-tauri/src/update.rs` |
 | What changed in each version | `CHANGELOG.md` |
 

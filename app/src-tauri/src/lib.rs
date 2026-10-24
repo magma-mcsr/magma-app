@@ -1,4 +1,5 @@
 mod autostart;
+mod game;
 mod mcsr;
 mod network;
 mod panel;
@@ -29,7 +30,7 @@ pub fn run() {
         .manage(sync::Engine::new())
         .manage(update::Updates::new())
         .setup(|app| {
-            let dir = app.path().app_config_dir()?;
+            let dir = settings::app_dir(app.handle())?;
             app.manage(settings::Store::load(dir));
             app.state::<update::Updates>().note_version(&app.state::<settings::Store>());
             std::thread::spawn(update::clean_old_installers);
@@ -65,6 +66,8 @@ pub fn run() {
             panel::set_run_in_tray,
             panel::set_paused,
             panel::check_now,
+            panel::detect_accounts,
+            panel::show_player_matches,
             panel::network_options,
             panel::set_network,
             panel::close_panel,

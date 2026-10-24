@@ -60,36 +60,17 @@ fn default_folder(app: &AppHandle) -> Option<String> {
 /// The `mcsrranked\replay` folder of an MCSR Ranked install, if one exists. Looks in the
 /// usual places of the common launchers; with several, takes the most recently used.
 fn game_replay_folder(app: &AppHandle) -> Option<std::path::PathBuf> {
-    let (roaming, home) = crate::game::roots(app);
-    find_game_replay_folder(roaming.as_deref(), home.as_deref())
+    let roots = crate::game::roots(app);
+    find_game_replay_folder(roots.roaming.as_deref(), roots.home.as_deref(), &roots.drives)
 }
 
 /// `roaming` is %APPDATA%, `home` the user's home folder (separate so tests can use fake ones).
-fn find_game_replay_folder(roaming: Option<&std::path::Path>, home: Option<&std::path::Path>) -> Option<std::path::PathBuf> {
-    use std::path::PathBuf;
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    fn add_instances(out: &mut Vec<PathBuf>, root: PathBuf, game_dirs: &[&str]) {
-        if let Ok(entries) = std::fs::read_dir(&root) {
-            for entry in entries.flatten() {
-                for game_dir in game_dirs {
-                    out.push(entry.path().join(game_dir).join("mcsrranked").join("replay"));
-                }
-            }
-        }
-    }
-    if let Some(r) = roaming {
-        add_instances(&mut candidates, r.join("PrismLauncher").join("instances"), &["minecraft", ".minecraft"]);
-        add_instances(&mut candidates, r.join("ModrinthApp").join("profiles"), &[""]);
-        add_instances(&mut candidates, r.join("com.modrinth.theseus").join("profiles"), &[""]);
-        candidates.push(r.join(".minecraft").join("mcsrranked").join("replay"));
-    }
-    if let Some(h) = home {
-        add_instances(&mut candidates, h.join("curseforge").join("minecraft").join("Instances"), &[""]);
-    }
-    candidates
+/// The launchers searched are the ones in game.rs; the most recently played instance wins.
+fn find_game_replay_folder(roaming: Option<&std::path::Path>, home: Option<&std::path::Path>, drives: &[std::path::PathBuf]) -> Option<std::path::PathBuf> {
+    crate::game::instances(roaming, home, drives)
         .into_iter()
-        .filter(|p| p.is_dir())
-        .max_by_key(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok())
+        .map(|d| d.join("mcsrranked").join("replay"))
+        .find(|p| p.is_dir())
 }
 
 #[cfg(test)]
@@ -123,7 +104,7 @@ mod tests {
         ] {
             let root = fake_root(name);
             let expected = make(&root, rel);
-            let found = if in_home { find_game_replay_folder(None, Some(&root)) } else { find_game_replay_folder(Some(&root), None) };
+            let found = if in_home { find_game_replay_folder(None, Some(&root), &[]) } else { find_game_replay_folder(Some(&root), None, &[]) };
             assert_eq!(found.map(|p| p.components().collect::<PathBuf>()), Some(expected.components().collect::<PathBuf>()), "{name}");
             let _ = std::fs::remove_dir_all(&root);
         }
@@ -133,7 +114,7 @@ mod tests {
     fn nothing_found_without_the_mod_folder() {
         let root = fake_root("empty");
         make(&root, "PrismLauncher/instances/Vanilla 1.21/minecraft/saves");
-        assert_eq!(find_game_replay_folder(Some(&root), Some(&root)), None);
+        assert_eq!(find_game_replay_folder(Some(&root), Some(&root), &[]), None);
         let _ = std::fs::remove_dir_all(&root);
     }
 
@@ -143,7 +124,7 @@ mod tests {
         make(&root, "PrismLauncher/instances/Old/minecraft/mcsrranked/replay");
         std::thread::sleep(std::time::Duration::from_millis(1100));
         let newer = make(&root, "PrismLauncher/instances/New/minecraft/mcsrranked/replay");
-        let found = find_game_replay_folder(Some(&root), None).unwrap();
+        let found = find_game_replay_folder(Some(&root), None, &[]).unwrap();
         assert_eq!(found.components().collect::<PathBuf>(), newer.components().collect::<PathBuf>());
         let _ = std::fs::remove_dir_all(&root);
     }
@@ -154,8 +135,8 @@ mod tests {
 #[tauri::command]
 pub async fn detect_accounts(webview: Webview, client: State<'_, Client>) -> Result<Vec<Player>, String> {
     guard(&webview)?;
-    let (roaming, home) = crate::game::roots(webview.app_handle());
-    let names = crate::game::account_names(&crate::game::instances(roaming.as_deref(), home.as_deref()));
+    let roots = crate::game::roots(webview.app_handle());
+    let names = crate::game::account_names(&crate::game::instances(roots.roaming.as_deref(), roots.home.as_deref(), &roots.drives));
     let mut found = Vec::new();
     for name in names.into_iter().take(3) {
         if let Ok(p) = client.player(&name).await {

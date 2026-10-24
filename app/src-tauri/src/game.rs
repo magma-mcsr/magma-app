@@ -2,7 +2,9 @@
 //! Minecraft names that played on them.
 //!
 //! Only two things are read: whether a folder exists, and the first part of each instance's
-//! `logs/latest.log`, where Minecraft writes "Setting user: <name>" every time it starts.
+//! Minecraft logs (`logs/latest.log`, then the few newest `logs/*.log.gz`), where Minecraft writes
+//! "Setting user: <name>" every time it starts. The older logs matter because a game left running
+//! past midnight starts a new latest.log without that line.
 //! Launcher account files (which hold login tokens) are never opened.
 
 use std::io::Read;
@@ -13,6 +15,8 @@ use tauri::{AppHandle, Manager};
 /// "Setting user" comes within the first lines of a launch; no need to read further (the log of
 /// a long session can be gigabytes).
 const LOG_HEAD_BYTES: u64 = 256 * 1024;
+/// How many logs per instance to look at, newest first.
+const LOGS_PER_INSTANCE: usize = 6;
 
 /// %APPDATA% and the home folder. Development builds can point both at a test folder with
 /// MAGMA_GAME_ROOT, to try a computer with or without the game.
@@ -62,7 +66,7 @@ pub fn instances(roaming: Option<&Path>, home: Option<&Path>) -> Vec<PathBuf> {
 pub fn account_names(instances: &[PathBuf]) -> Vec<String> {
     let mut names: Vec<String> = Vec::new();
     for dir in instances {
-        if let Some(name) = logged_user(&dir.join("logs").join("latest.log")) {
+        if let Some(name) = newest_logs(&dir.join("logs")).iter().find_map(|log| logged_user(log)) {
             if !names.iter().any(|n| n.eq_ignore_ascii_case(&name)) {
                 names.push(name);
             }
@@ -71,10 +75,29 @@ pub fn account_names(instances: &[PathBuf]) -> Vec<String> {
     names
 }
 
-/// The name in "Setting user: <name>" near the top of a Minecraft log.
+/// latest.log and the gzipped older logs of one instance, newest first.
+fn newest_logs(dir: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
+    let mut logs: Vec<(std::time::SystemTime, PathBuf)> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n == "latest.log" || n.ends_with(".log.gz")))
+        .filter_map(|p| Some((std::fs::metadata(&p).and_then(|m| m.modified()).ok()?, p)))
+        .collect();
+    logs.sort_by_key(|(t, _)| std::cmp::Reverse(*t));
+    logs.into_iter().take(LOGS_PER_INSTANCE).map(|(_, p)| p).collect()
+}
+
+/// The name in "Setting user: <name>" near the top of a Minecraft log (plain or gzipped).
 fn logged_user(log: &Path) -> Option<String> {
+    let file = std::fs::File::open(log).ok()?;
     let mut head = Vec::new();
-    std::fs::File::open(log).ok()?.take(LOG_HEAD_BYTES).read_to_end(&mut head).ok()?;
+    if log.extension().is_some_and(|x| x == "gz") {
+        // A partial read is fine: only the beginning is needed
+        let _ = flate2::read::GzDecoder::new(file).take(LOG_HEAD_BYTES).read_to_end(&mut head);
+    } else {
+        file.take(LOG_HEAD_BYTES).read_to_end(&mut head).ok()?;
+    }
     let text = String::from_utf8_lossy(&head);
     let at = text.find("Setting user: ")? + "Setting user: ".len();
     let name: String = text[at..].chars().take_while(|c| c.is_ascii_alphanumeric() || *c == '_').collect();
@@ -117,6 +140,19 @@ mod tests {
     }
 
     #[test]
+    fn reads_an_older_gzipped_log_after_midnight() {
+        use std::io::Write;
+        let root = fake_root("gz");
+        // The game kept running past midnight: the new latest.log has no "Setting user"
+        let dir = instance(&root, "MCSR Ranked", Some("[00:00:01] [main/INFO]: something else"));
+        let mut gz = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        gz.write_all(b"[01:53:07] [main/INFO]: Setting user: Loupitwai\n").unwrap();
+        std::fs::write(dir.join("logs").join("2026-10-24-1.log.gz"), gz.finish().unwrap()).unwrap();
+        assert_eq!(account_names(&[dir]), vec!["Loupitwai".to_string()]);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
     fn nothing_without_the_game() {
         let root = fake_root("empty");
         assert!(instances(Some(&root), Some(&root)).is_empty());
@@ -125,3 +161,4 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
     }
 }
+

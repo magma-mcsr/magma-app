@@ -51,6 +51,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             shell::titlebar,
             shell::sync_status,
+            shell::app_view_open,
             shell::update_status,
             shell::download_fly,
             shell::notice_mode,

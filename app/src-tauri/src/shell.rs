@@ -702,6 +702,15 @@ pub fn update_status(webview: Webview) -> Result<crate::update::UpdateStatus, St
 }
 
 /// Current sync status, for the title bar and panel when they first load.
+/// Whether the app view is showing, for a title bar that loads after the app opened on it.
+#[tauri::command]
+pub fn app_view_open(webview: Webview) -> Result<bool, String> {
+    if webview.label() != TITLEBAR_LABEL {
+        return Err("not allowed".into());
+    }
+    Ok(webview.app_handle().state::<PanelState>().0.load(Ordering::Relaxed))
+}
+
 #[tauri::command]
 pub fn sync_status(webview: Webview, store: tauri::State<'_, Store>) -> Result<SyncStatus, String> {
     if webview.label() != TITLEBAR_LABEL && webview.label() != PANEL_LABEL {

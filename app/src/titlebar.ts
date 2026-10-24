@@ -53,11 +53,14 @@ const showStatus = (s: SyncStatus) => {
 invoke<SyncStatus>("sync_status").then(showStatus).catch(console.error);
 listen<SyncStatus>("sync-status", ({ payload }) => showStatus(payload));
 // The website's back, forward and reload only show while the website is the view.
-listen<boolean>("panel-open", ({ payload }) => {
-  bar.classList.toggle("app-active", payload);
-  appTab.setAttribute("aria-selected", String(payload));
-  siteTab.setAttribute("aria-selected", String(!payload));
-});
+const showView = (app: boolean) => {
+  bar.classList.toggle("app-active", app);
+  appTab.setAttribute("aria-selected", String(app));
+  siteTab.setAttribute("aria-selected", String(!app));
+};
+listen<boolean>("panel-open", ({ payload }) => showView(payload));
+// The app may have opened on the App tab before this page loaded and heard the event
+invoke<boolean>("app_view_open").then(showView).catch(console.error);
 
 // A downloaded update shows an "Update" button; clicking it restarts into the new version.
 type UpdateStatus = { ready: string | null };

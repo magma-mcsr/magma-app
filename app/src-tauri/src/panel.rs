@@ -31,6 +31,8 @@ fn apply(app: &AppHandle, store: &Store, f: impl FnOnce(&mut Settings)) -> Resul
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PanelInit {
+    /// The first-run setup is still looking for this computer's Minecraft name.
+    setup_pending: bool,
     settings: Settings,
     status: SyncStatus,
     version: &'static str,
@@ -42,6 +44,7 @@ pub fn panel_init(webview: Webview, store: State<'_, Store>) -> Result<PanelInit
     guard(&webview)?;
     let settings = store.get();
     Ok(PanelInit {
+        setup_pending: webview.app_handle().state::<SetupPending>().0.load(std::sync::atomic::Ordering::SeqCst),
         status: shell::status_for(&settings, &webview.app_handle().state::<crate::sync::Engine>().live()),
         settings,
         version: env!("CARGO_PKG_VERSION"),
@@ -165,6 +168,85 @@ pub fn show_player_matches(webview: Webview, nickname: String, match_id: Option<
         shell::set_panel(app, false);
     }
     Ok(())
+}
+
+/// True while the first-run setup is still looking for this computer's Minecraft name.
+#[derive(Default)]
+pub struct SetupPending(pub std::sync::atomic::AtomicBool);
+
+/// First run, before anything is set: track the Minecraft name found on this computer right away,
+/// and tell the user in the App tab what that does, with "Change name" and "Turn off" (see the
+/// README). Runs once: removing or renaming the player later is respected. Without a name found,
+/// nothing is added and the App tab asks for one.
+pub async fn auto_setup(app: AppHandle) {
+    use std::sync::atomic::Ordering;
+    let pending = &app.state::<SetupPending>().0;
+    let store = app.state::<Store>();
+    let s = store.get();
+    if s.auto_setup_done || s.welcome_dismissed || !s.players.is_empty() {
+        pending.store(false, Ordering::SeqCst);
+        let _ = app.emit("setup-done", ());
+        return;
+    }
+    let roots = crate::game::roots(&app);
+    let names = crate::game::account_names(&crate::game::instances(roots.roaming.as_deref(), roots.home.as_deref(), &roots.drives));
+    let client = app.state::<Client>();
+    let mut found = None;
+    for name in names.into_iter().take(3) {
+        if let Ok(p) = client.player(&name).await {
+            found = Some(p);
+            break;
+        }
+    }
+    if let Some(p) = found {
+        let added = apply(&app, &store, |s| {
+            if s.players.is_empty() {
+                s.players.push(TrackedPlayer { uuid: p.uuid.clone(), nickname: p.nickname.clone() });
+                s.auto_tracked_notice = true;
+            }
+            s.auto_setup_done = true;
+        });
+        if added.is_ok() {
+            app.state::<crate::sync::Engine>().wake();
+            // Ready on the website for when they switch to it
+            if let (Some(site), Ok(url)) = (
+                app.get_webview(crate::shell::SITE_LABEL),
+                format!("{}/ranked/player/{}/matches", crate::shell::SITE_URL, p.nickname).parse(),
+            ) {
+                let _ = site.navigate(url);
+            }
+        }
+    }
+    pending.store(false, Ordering::SeqCst);
+    let _ = app.emit("setup-done", ());
+}
+
+/// "Got it" on the notice about the automatic setup.
+#[tauri::command]
+pub fn ack_setup_notice(webview: Webview, store: State<'_, Store>) -> Result<Settings, String> {
+    guard(&webview)?;
+    apply(webview.app_handle(), &store, |s| s.auto_tracked_notice = false)
+}
+
+/// "Turn off" on that notice: stop tracking the name that was added automatically.
+#[tauri::command]
+pub fn undo_auto_track(webview: Webview, store: State<'_, Store>, uuid: String) -> Result<Settings, String> {
+    guard(&webview)?;
+    apply(webview.app_handle(), &store, |s| {
+        s.players.retain(|p| p.uuid != uuid);
+        s.auto_tracked_notice = false;
+    })
+}
+
+/// "Change name": put another player first in place of `replace`.
+#[tauri::command]
+pub fn replace_first_player(webview: Webview, store: State<'_, Store>, replace: String, player: TrackedPlayer) -> Result<Settings, String> {
+    guard(&webview)?;
+    apply(webview.app_handle(), &store, |s| {
+        s.players.retain(|p| p.uuid != replace && p.uuid != player.uuid);
+        s.players.insert(0, player);
+        s.auto_tracked_notice = false;
+    })
 }
 
 /// "Not now" on the first-run welcome: remember it and show the website.

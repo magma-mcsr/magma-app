@@ -17,10 +17,11 @@ type Settings = {
   runInTray: boolean;
   paused: boolean;
   network: string | null;
+  autoTrackedNotice: boolean;
 };
 type Connection = { name: string; address: string };
 type SyncStatus = { state: string; label: string };
-type Init = { settings: Settings; version: string; defaultFolder: string | null; status: SyncStatus };
+type Init = { settings: Settings; version: string; defaultFolder: string | null; status: SyncStatus; setupPending: boolean };
 type OwnMatch = {
   id: number;
   date: number;
@@ -350,6 +351,70 @@ function Welcome({ onSettings }: { onSettings: (s: Settings) => void }) {
   );
 }
 
+/** After the first-run setup tracked the name found on this computer: what that does, and the way
+ *  to change it or turn it off. Stays until "Got it". */
+function SetupNotice({ me, onSettings }: { me: Tracked; onSettings: (s: Settings) => void }) {
+  const [changing, setChanging] = useState(false);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function change(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const p = await invoke<Tracked>("lookup_player", { name });
+      onSettings(await invoke<Settings>("replace_first_player", { replace: me.uuid, player: { uuid: p.uuid, nickname: p.nickname } }));
+      invoke("show_player_matches", { nickname: p.nickname }).catch(console.error);
+    } catch (err) {
+      setError(String(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card setup">
+      <h2 className="card-title">Your matches are now analyzed on Magma</h2>
+      <p className="setup-lead">
+        We found <strong>{me.nickname}</strong> in this computer's Minecraft logs and started tracking that name.
+      </p>
+      <ul className="how">
+        <li>While the app runs, it checks for your new Ranked matches.</li>
+        <li>It downloads each replay from MCSR Ranked's public replay server and uploads it to Magma.</li>
+        <li>Magma analyzes it, and the analysis is on your Matches page about a minute after the match. Analyses are public.</li>
+      </ul>
+      {changing ? (
+        <form className="you-row" onSubmit={change}>
+          <input value={name} onChange={(e) => setName(e.currentTarget.value)} placeholder="Your Minecraft name" spellCheck={false} autoFocus disabled={busy} />
+          <button className="btn primary" type="submit" disabled={busy || !name.trim()}>
+            {busy ? "Looking up…" : "Save"}
+          </button>
+          <button className="btn" type="button" onClick={() => setChanging(false)} disabled={busy}>
+            Cancel
+          </button>
+        </form>
+      ) : (
+        <div className="actions">
+          <button className="btn primary" onClick={() => invoke<Settings>("ack_setup_notice").then(onSettings).catch(console.error)}>
+            Got it
+          </button>
+          <button className="btn" onClick={() => setChanging(true)}>
+            Change name
+          </button>
+          <button className="btn" onClick={() => invoke<Settings>("undo_auto_track", { uuid: me.uuid }).then(onSettings).catch(console.error)}>
+            Turn off
+          </button>
+          <span className="spacer" />
+          {LEARN}
+        </div>
+      )}
+      {error && <div className="error">{error}</div>}
+    </section>
+  );
+}
+
 const STATE_LABEL: Record<OwnMatch["state"], string> = {
   analyzed: "Open analysis",
   uploading: "Uploading",
@@ -414,6 +479,8 @@ function RecentMatches({ me }: { me: Tracked }) {
 function Panel({ init }: { init: Init }) {
   const [settings, setSettings] = useState(init.settings);
   const [status, setStatus] = useState(init.status);
+  // The first-run setup may still be looking for this computer's Minecraft name
+  const [pending, setPending] = useState(init.setupPending);
   const empty = settings.players.length === 0;
   const body = useRef<HTMLDivElement>(null);
   useEffect(() => customScrollbar(body.current!), []);
@@ -421,9 +488,11 @@ function Panel({ init }: { init: Init }) {
   useEffect(() => {
     const a = listen<Settings>("settings-changed", ({ payload }) => setSettings(payload));
     const b = listen<SyncStatus>("sync-status", ({ payload }) => setStatus(payload));
+    const c = listen("setup-done", () => setPending(false));
     return () => {
       a.then((f) => f());
       b.then((f) => f());
+      c.then((f) => f());
     };
   }, []);
 
@@ -434,7 +503,9 @@ function Panel({ init }: { init: Init }) {
       <div className="body-row">
         <div className="body" ref={body}>
           <div className="page">
-            {empty ? (
+            {empty && pending ? (
+              <p className="muted looking">Looking for your Minecraft account on this computer…</p>
+            ) : empty ? (
               <Welcome onSettings={setSettings} />
             ) : (
               <>
@@ -445,6 +516,8 @@ function Panel({ init }: { init: Init }) {
                   {/* Master switch for sync only: on = syncing, off = paused. */}
                   <Toggle label="Sync replays" checked={!settings.paused} onChange={(on) => set("set_paused", { paused: !on })} />
                 </header>
+
+                {settings.autoTrackedNotice && <SetupNotice me={settings.players[0]} onSettings={setSettings} />}
 
                 <RecentMatches me={settings.players[0]} />
 

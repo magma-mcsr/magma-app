@@ -36,6 +36,11 @@ pub struct Settings {
     pub last_run_version: Option<String>,
     /// "Not now" on the first-run welcome: the app no longer opens on it.
     pub welcome_dismissed: bool,
+    /// The name found on this computer was tracked automatically at first run. Done once: a
+    /// player removed or renamed later is never added back.
+    pub auto_setup_done: bool,
+    /// The App tab still shows what that automatic setup did, until "Got it".
+    pub auto_tracked_notice: bool,
 }
 
 impl Default for Settings {
@@ -51,6 +56,8 @@ impl Default for Settings {
             network: None,
             last_run_version: None,
             welcome_dismissed: false,
+            auto_setup_done: false,
+            auto_tracked_notice: false,
         }
     }
 }

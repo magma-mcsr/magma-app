@@ -747,3 +747,42 @@ footer {
 .card > section {
   margin-top: 0;
 }
+
+/* What the automatic first-run setup did, and how to change it. */
+.card.setup {
+  border-color: var(--accent);
+  background: rgba(240, 116, 58, 0.06);
+}
+
+.setup-lead {
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.how {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn {
+  border: 1px solid var(--line);
+  background: #1f2024;
+  color: var(--text);
+}
+
+.btn.primary {
+  border-color: var(--accent);
+}
+
+.looking {
+  margin-top: 40px;
+  text-align: center;
+}

@@ -28,6 +28,7 @@ pub fn run() {
         .manage(shell::LastDownload::default())
         .manage(shell::NoticeState::default())
         .manage(sync::Engine::new())
+        .manage(panel::SetupPending(std::sync::atomic::AtomicBool::new(true)))
         .manage(update::Updates::new())
         .setup(|app| {
             let dir = settings::app_dir(app.handle())?;
@@ -42,6 +43,7 @@ pub fn run() {
                 }
             }
             shell::setup(app)?;
+            tauri::async_runtime::spawn(panel::auto_setup(app.handle().clone()));
             tauri::async_runtime::spawn(sync::run(app.handle().clone()));
             tauri::async_runtime::spawn(update::run(app.handle().clone()));
             Ok(())
@@ -70,6 +72,9 @@ pub fn run() {
             panel::show_player_matches,
             panel::dismiss_welcome,
             panel::recent_own,
+            panel::ack_setup_notice,
+            panel::undo_auto_track,
+            panel::replace_first_player,
             panel::network_options,
             panel::set_network,
             panel::close_panel,

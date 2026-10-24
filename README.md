@@ -48,9 +48,11 @@ are still available and sends them to Magma for analysis.
   Downloads, Documents and Games folders and the drive roots for a folder with an `instances`
   folder and the launcher's program; there it only checks folder names. It then reads the
   first part of each instance's newest Minecraft logs (`logs/latest.log`, then a few older
-  `logs/*.log.gz`), where Minecraft writes "Setting user: <name>" when it starts. The names
-  it finds are offered as "Track <name>"; nothing is added until you click. The game does not
-  need to be running.
+  `logs/*.log.gz`), where Minecraft writes "Setting user: <name>" when it starts. The game does
+  not need to be running. If it finds a name with a Ranked profile, it starts tracking that name
+  right away and the App tab says so, explains what happens to the replays, and offers "Change
+  name" and "Turn off". This happens once: a name you remove or change is never added back.
+  Without a name found, nothing is tracked until you type one.
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**
 - Checks this repository's GitHub Releases for updates. A new version is installed when the app
   starts with Windows, or when you click "Update" in the title bar; it never closes on you

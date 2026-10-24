@@ -9,10 +9,10 @@ version after an update, and each GitHub release uses the same text.
   tabs. The App tab fills the window and replaces the settings panel: your recent matches and
   whether each one is analyzed yet (click one to open it on the website), the players to sync,
   and the settings. The website stays loaded while you are in the App tab.
-- **Set up in one step**: the first time you open the app, the App tab explains what it does and
-  asks "Is this you?" with your Minecraft name already filled in when the app finds it in this
-  computer's Minecraft logs (Prism Launcher, MultiMC, Modrinth, CurseForge and the official
-  launcher). One click tracks your matches.
+- **Ready on first launch**: when the app finds your Minecraft name in this computer's Minecraft
+  logs (Prism Launcher, MultiMC, Modrinth, CurseForge and the official launcher), it starts
+  tracking your matches right away. The App tab says so, explains what happens, and lets you
+  change the name or turn it off. Without a name found, it asks for yours.
 - The app uses the same font as the website (Inter).
 - The app's pages and update notices use the same slim scrollbar as the website.
 - **Faster sync, safely within the limits**

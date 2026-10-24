@@ -46,10 +46,11 @@ are still available and sends them to Magma for analysis.
   folders (Prism Launcher, MultiMC, Modrinth, CurseForge, the official launcher). MultiMC and
   portable Prism can be unpacked anywhere, so it also looks one level into your home, Desktop,
   Downloads, Documents and Games folders and the drive roots for a folder with an `instances`
-  folder and the launcher's program; there it only checks folder names. It then reads the first part of each instance's newest Minecraft logs (`logs/latest.log`,
-  then a few older `logs/*.log.gz`), where Minecraft writes "Setting user: <name>" when it
-  starts. The names it finds are offered as "Track <name>"; nothing is added until you click.
-  The game does not need to be running.
+  folder and the launcher's program; there it only checks folder names. It then reads the
+  first part of each instance's newest Minecraft logs (`logs/latest.log`, then a few older
+  `logs/*.log.gz`), where Minecraft writes "Setting user: <name>" when it starts. The names
+  it finds are offered as "Track <name>"; nothing is added until you click. The game does not
+  need to be running.
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**
 - Checks this repository's GitHub Releases for updates. A new version is installed when the app
   starts with Windows, or when you click "Update" in the title bar; it never closes on you

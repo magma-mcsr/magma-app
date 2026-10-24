@@ -29,6 +29,9 @@ pub struct Settings {
     /// Closing the window hides it to the tray instead of quitting.
     pub run_in_tray: bool,
     pub paused: bool,
+    /// Network connection to sync through, by name (for example "Wi-Fi"). None: the system
+    /// decides. See network.rs.
+    pub network: Option<String>,
     /// App version that last ran, to say "Updated to ..." once after an update.
     pub last_run_version: Option<String>,
 }
@@ -43,6 +46,7 @@ impl Default for Settings {
             start_with_windows: false,
             run_in_tray: true,
             paused: false,
+            network: None,
             last_run_version: None,
         }
     }

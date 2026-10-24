@@ -10,11 +10,16 @@ use tokio::sync::Mutex;
 
 const API: &str = "https://api.mcsrranked.com";
 const CDN: &str = "https://replay.mcsrranked.com";
-const USER_AGENT: &str = concat!("magma-app/", env!("CARGO_PKG_VERSION"), " (magmamcsr.com)");
 
-/// Minimum spacing between replay downloads. The CDN blocks an IP for 5 minutes after
-/// roughly 3 downloads per minute; 26 s keeps us safely under that.
-const DOWNLOAD_SPACING: Duration = Duration::from_secs(26);
+/// Minimum time between the starts of two replay downloads. The CDN blocks an IP for
+/// 5 minutes after more than 3 downloads within a minute; 21 s allows at most 3 in any
+/// 60 s, the most that never trips the limit.
+const DOWNLOAD_SPACING: Duration = Duration::from_secs(21);
+/// After being blocked anyway, something else shares this IP's limit (Ranked itself when
+/// you watch replays in game, or another computer on the same network). Back off to this
+/// spacing for a while.
+const SHARED_SPACING: Duration = Duration::from_secs(30);
+const SHARED_FOR: Duration = Duration::from_secs(60 * 60);
 const MAX_REPLAY_BYTES: usize = 64 << 20;
 /// Minimum spacing between any two API calls. The official limit is 500 requests per
 /// 10 minutes per IP; 1.5 s caps the app at 400, however many players are followed.
@@ -24,8 +29,11 @@ const API_RETRY_DEFAULT: Duration = Duration::from_secs(60);
 const MAX_RETRIES: u32 = 3;
 
 pub struct Client {
-    http: reqwest::Client,
+    /// Identifies itself as `magma-app/<version>` (see network.rs).
+    http: crate::network::BoundClient,
     last_download: Mutex<Option<Instant>>,
+    /// Until when downloads use SHARED_SPACING.
+    shared_until: std::sync::Mutex<Option<Instant>>,
     last_api_call: Mutex<Option<Instant>>,
 }
 
@@ -73,12 +81,24 @@ pub fn is_valid_name(name: &str) -> bool {
 
 impl Client {
     pub fn new() -> Self {
-        let http = reqwest::Client::builder()
-            .user_agent(USER_AGENT)
-            .timeout(Duration::from_secs(60))
-            .build()
-            .expect("HTTP client builds");
-        Client { http, last_download: Mutex::new(None), last_api_call: Mutex::new(None) }
+        Client {
+            http: crate::network::BoundClient::new(Duration::from_secs(60)),
+            last_download: Mutex::new(None),
+            shared_until: std::sync::Mutex::new(None),
+            last_api_call: Mutex::new(None),
+        }
+    }
+
+    /// Send from this local address (None: the system decides). See network.rs.
+    pub fn bind(&self, address: Option<std::net::IpAddr>) {
+        self.http.bind(address);
+    }
+
+    fn download_spacing(&self) -> Duration {
+        match *self.shared_until.lock().expect("spacing lock") {
+            Some(until) if Instant::now() < until => SHARED_SPACING,
+            _ => DOWNLOAD_SPACING,
+        }
     }
 
     /// Every API request goes through here, so the spacing holds for all of them.
@@ -93,7 +113,7 @@ impl Client {
                 }
                 *last = Some(Instant::now());
             }
-            let res = self.http.get(format!("{API}{path}")).send().await.map_err(|e| format!("Network error: {e}"))?;
+            let res = self.http.get().get(format!("{API}{path}")).send().await.map_err(|e| format!("Network error: {e}"))?;
             if res.status() != reqwest::StatusCode::TOO_MANY_REQUESTS {
                 break res;
             }
@@ -153,18 +173,16 @@ impl Client {
         let mut last = self.last_download.lock().await;
         let mut attempts = 0;
         loop {
-            if let Some(t) = *last {
-                let elapsed = t.elapsed();
-                if elapsed < DOWNLOAD_SPACING {
-                    let wait = DOWNLOAD_SPACING - elapsed;
-                    tokio::time::sleep(wait).await;
-                }
+            if let Some(wait) = last.and_then(|t| self.download_spacing().checked_sub(t.elapsed())) {
+                tokio::time::sleep(wait).await;
             }
-            let res = self.http.get(&url).send().await;
+            // Spacing counts from the start of each request, like the CDN's limit.
             *last = Some(Instant::now());
+            let res = self.http.get().get(&url).send().await;
             let res = res.map_err(|e| format!("Network error: {e}"))?;
 
             if res.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+                *self.shared_until.lock().expect("spacing lock") = Some(Instant::now() + SHARED_FOR);
                 attempts += 1;
                 if attempts > MAX_RETRIES {
                     return Err("The replay server is rate limiting downloads. Try again later.".into());

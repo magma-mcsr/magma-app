@@ -6,8 +6,20 @@ version after an update, and each GitHub release uses the same text.
 ## 0.1.4
 
 - The settings panel and update notices use the same slim scrollbar as the website.
-- Following many players can no longer run into the MCSR Ranked API rate limit: every request
-  is spaced at least 1.5 seconds apart, and the app waits if the API asks it to slow down.
+- **Faster sync, safely within the limits**
+  - Replays download about 25% faster (one every 21 seconds instead of 26), the most the replay
+    server allows without blocking.
+  - If downloads get blocked anyway, for example while you watch replays in game, the app slows
+    down for an hour by itself.
+  - Following many players can no longer run into the MCSR Ranked API rate limit.
+- **Long player lists**: when there are more replays than can be downloaded, the players at the
+  top of your list always come first, and new matches of top players are found within about
+  half an hour even during a big backlog.
+- **Choose a network**: on a computer with more than one connection (for example wired and
+  Wi-Fi), pick which one the app uses in Settings → Network.
+- **Watch your replays in game**: when you turn on "Keep a copy of replays", copies now go to
+  your MCSR Ranked replay folder by default, so they show up under My Replays. You can still
+  pick another folder.
 
 ## 0.1.3
 

@@ -14,7 +14,9 @@ type Settings = {
   startWithWindows: boolean;
   runInTray: boolean;
   paused: boolean;
+  network: string | null;
 };
+type Connection = { name: string; address: string };
 type Init = { settings: Settings; version: string; defaultFolder: string | null };
 
 // Until magmamcsr.com has a privacy page, this explains what the app does and sends.
@@ -48,6 +50,28 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     <button className={`toggle ${checked ? "on" : ""}`} role="switch" aria-checked={checked} aria-label={label} onClick={() => onChange(!checked)}>
       <span />
     </button>
+  );
+}
+
+/** Which network connection sync goes through. The list is read again whenever it is opened,
+ *  so a connection plugged in later shows up. */
+function NetworkPicker({ value, onChange }: { value: string | null; onChange: (name: string | null) => void }) {
+  const [options, setOptions] = useState<Connection[]>([]);
+  const refresh = () => invoke<Connection[]>("network_options").then(setOptions).catch(console.error);
+  useEffect(() => {
+    refresh();
+  }, []);
+  const missing = value !== null && !options.some((o) => o.name === value);
+  return (
+    <select className="select" aria-label="Network" value={value ?? ""} onFocus={refresh} onChange={(e) => onChange(e.target.value || null)}>
+      <option value="">Automatic</option>
+      {options.map((o) => (
+        <option key={o.name} value={o.name}>
+          {o.name} ({o.address})
+        </option>
+      ))}
+      {missing && <option value={value}>{value} (not connected)</option>}
+    </select>
   );
 }
 
@@ -225,7 +249,10 @@ function Panel({ init }: { init: Init }) {
           )}
           <Players settings={settings} setSettings={setSettings} />
           <div className="setting">
-            <span>Keep a copy of replays</span>
+            <span>
+              Keep a copy of replays{" "}
+              <InfoTip text="Saved to your MCSR Ranked replay folder when the app finds it, so they show up under My Replays in game." />
+            </span>
             <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
           </div>
           {settings.keepCopy && (
@@ -248,6 +275,13 @@ function Panel({ init }: { init: Init }) {
               <div className="example">{EXAMPLE_FILE}</div>
             </div>
           )}
+          <div className="setting">
+            <span>
+              Network{" "}
+              <InfoTip text="Which connection downloads and uploads go through. Pick a different one than other computers syncing on the same network: each connection has its own download limit." />
+            </span>
+            <NetworkPicker value={settings.network} onChange={(name) => set("set_network", { name })} />
+          </div>
         </section>
 
         <section className="group divided">

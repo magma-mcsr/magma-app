@@ -300,6 +300,24 @@ h2 {
   border-left: 1px solid var(--line);
 }
 
+/* Network connection picker, same height as the toggles' row. */
+.select {
+  max-width: 170px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #18191c;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--muted);
+}
+
 /* [folder button] path */
 .folder {
   display: flex;

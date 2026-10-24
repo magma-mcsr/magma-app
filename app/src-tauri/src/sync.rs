@@ -1,14 +1,19 @@
 //! Background replay sync.
 //!
-//! Each round: ask the API for every listed player's recent matches, queue the replays
-//! that are new and not yet expired (higher players first, then the ones closest to
-//! expiring), download them one at a time within the CDN rate limit, optionally keep a
-//! copy, and upload them to Magma.
+//! Each round: ask the API for the listed players' recent matches, queue the replays that
+//! are new and not yet expired (higher players first, then the ones closest to expiring),
+//! download them one at a time within the CDN rate limit, optionally keep a copy, and
+//! upload them to Magma.
+//!
+//! The list can be longer than one connection can keep up with. Downloads then follow the
+//! list order: a round downloads for at most ROUND_DOWNLOAD_BUDGET, then checks for new
+//! matches and sorts again, so the top of the list is never stuck behind a backlog, and
+//! players further down get whatever capacity is left.
 //!
 //! The server never tells the app what to download. The only thing the app asks it is
 //! "do you already have this match?", which can only skip downloads.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -24,8 +29,16 @@ use crate::upload::{Lookup, Outcome, Uploader};
 /// Official replays are deleted after 7 days; leave an hour of margin.
 const RETENTION_SECS: i64 = 7 * 24 * 3600 - 3600;
 /// Roughly how long one download takes, including the rate-limit spacing.
-const SECS_PER_DOWNLOAD: i64 = 26;
+const SECS_PER_DOWNLOAD: i64 = 21;
+/// Wait between rounds once everything found has been downloaded.
 const ROUND_INTERVAL: Duration = Duration::from_secs(10 * 60);
+/// A round downloads for at most this long, then checks for new matches and sorts again.
+const ROUND_DOWNLOAD_BUDGET: Duration = Duration::from_secs(30 * 60);
+/// Players at the top of the list whose matches are checked every round.
+const ALWAYS_CHECK: usize = 200;
+/// Further down the list, this many players are checked per round, taking turns, so a long
+/// list does not make every round spend minutes on API requests.
+const CHECK_IN_TURN: usize = 100;
 /// Forget processed matches after this long (they are expired by then anyway).
 const JOURNAL_KEEP_SECS: i64 = 14 * 24 * 3600;
 /// The server accepts 10 uploads per minute per IP. A backlog (after an outage) is sent
@@ -147,6 +160,11 @@ pub async fn run(app: AppHandle) {
     let mut journal = Journal::load(&data_dir);
     let uploader = Uploader::new();
     let mut upload_blocked_until: Option<tokio::time::Instant> = None;
+    // Matches found but not downloaded yet, kept across rounds (players further down the
+    // list are not checked every round).
+    let mut known: HashMap<i64, MatchSummary> = HashMap::new();
+    // Where the next turn starts among the players after ALWAYS_CHECK.
+    let mut turn: usize = 0;
 
     loop {
         let engine = app.state::<Engine>();
@@ -171,27 +189,40 @@ pub async fn run(app: AppHandle) {
             continue;
         }
 
+        // Send through the chosen network connection, if any (looked up every round).
+        let client = app.state::<Client>();
+        let address = crate::network::local_address(settings.network.as_deref());
+        client.bind(address);
+        uploader.bind(address);
+
         flush_uploads(&app, &uploader, &pending_dir, &mut upload_blocked_until).await;
 
-        // 1. Find new matches, highest-priority players first.
+        // 1. Find new matches: the top of the list every round, the rest in turn.
         engine.set(&app, |l| l.phase = Phase::Checking);
-        let client = app.state::<Client>();
-        let mut seen = HashSet::new();
-        let mut queue: Vec<(usize, MatchSummary)> = Vec::new();
-        for (rank, player) in settings.players.iter().enumerate() {
+        let players = &settings.players;
+        let mut to_check: Vec<&TrackedPlayer> = players.iter().take(ALWAYS_CHECK).collect();
+        let rest = &players[players.len().min(ALWAYS_CHECK)..];
+        if !rest.is_empty() {
+            let n = CHECK_IN_TURN.min(rest.len());
+            let first = turn % rest.len();
+            to_check.extend((0..n).map(|i| &rest[(first + i) % rest.len()]));
+            turn = (first + n) % rest.len();
+        }
+        for player in to_check {
             match client.recent_matches(&player.uuid).await {
                 Ok(matches) => {
-                    for m in matches {
-                        let fresh = m.date + RETENTION_SECS > now();
-                        if m.replay_exists > 0 && fresh && !journal.processed.contains_key(&m.id) && seen.insert(m.id) {
-                            queue.push((rank, m));
-                        }
+                    for m in matches.into_iter().filter(|m| m.replay_exists > 0) {
+                        known.entry(m.id).or_insert(m);
                     }
                 }
                 Err(e) => eprintln!("[sync] matches for {}: {e}", player.nickname),
             }
         }
+        // A match belongs to its highest listed player; matches of removed players are dropped.
+        let rank_of = |m: &MatchSummary| m.players.iter().filter_map(|p| players.iter().position(|q| q.uuid == p.uuid)).min();
+        known.retain(|id, m| m.date + RETENTION_SECS > now() && !journal.processed.contains_key(id) && rank_of(m).is_some());
         // Higher players first; within a player, the replay closest to expiring first.
+        let mut queue: Vec<(usize, MatchSummary)> = known.values().map(|m| (rank_of(m).unwrap_or(usize::MAX), m.clone())).collect();
         queue.sort_by_key(|(rank, m)| (*rank, m.date));
         let total = queue.len();
         let expiring = queue
@@ -205,12 +236,23 @@ pub async fn run(app: AppHandle) {
             l.expiring = expiring;
         });
 
-        // 2. Download one at a time.
+        // 2. Download one at a time, for at most ROUND_DOWNLOAD_BUDGET.
+        let started = tokio::time::Instant::now();
+        let mut more_waiting = false;
         for (k, (_, m)) in queue.iter().enumerate() {
             let settings = app.state::<Store>().get();
             if settings.paused || settings.players.is_empty() || engine.live().update_required {
                 break;
             }
+            if started.elapsed() > ROUND_DOWNLOAD_BUDGET {
+                more_waiting = true;
+                break;
+            }
+            // Look the connection up again before each download: a phone or mobile connection
+            // that reconnects comes back with a new address, and this follows it right away.
+            let address = crate::network::local_address(settings.network.as_deref());
+            client.bind(address);
+            uploader.bind(address);
             engine.set(&app, |l| {
                 l.phase = Phase::Downloading;
                 l.done = k;
@@ -251,12 +293,17 @@ pub async fn run(app: AppHandle) {
                 Err(e) => eprintln!("[sync] download {}: {e}", m.id),
             }
         }
+        known.retain(|id, _| !journal.processed.contains_key(id));
 
         engine.set(&app, |l| {
             l.phase = Phase::Idle;
             l.expiring = 0;
             l.pending_uploads = count_pending(&pending_dir);
         });
+        // Still a backlog after the time budget: check again and continue right away.
+        if more_waiting {
+            continue;
+        }
         let _ = tokio::time::timeout(ROUND_INTERVAL, engine.wake.notified()).await;
     }
 }

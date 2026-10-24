@@ -35,24 +35,24 @@ pub enum Lookup {
 }
 
 pub struct Uploader {
-    http: reqwest::Client,
+    http: crate::network::BoundClient,
     base: String,
 }
 
 impl Uploader {
     pub fn new() -> Self {
-        let http = reqwest::Client::builder()
-            .user_agent(concat!("magma-app/", env!("CARGO_PKG_VERSION"), " (magmamcsr.com)"))
-            .timeout(Duration::from_secs(60))
-            .build()
-            .expect("HTTP client builds");
-        Uploader { http, base: base_url() }
+        Uploader { http: crate::network::BoundClient::new(Duration::from_secs(60)), base: base_url() }
+    }
+
+    /// Send from this local address (None: the system decides). See network.rs.
+    pub fn bind(&self, address: Option<std::net::IpAddr>) {
+        self.http.bind(address);
     }
 
     /// Whether Magma already has this match. Any error counts as "missing", so the
     /// download goes ahead as usual.
     pub async fn has(&self, match_id: i64) -> Lookup {
-        match self.http.head(format!("{}/api/mcsr-ranked/replays/{match_id}", self.base)).send().await {
+        match self.http.get().head(format!("{}/api/mcsr-ranked/replays/{match_id}", self.base)).send().await {
             Ok(res) if res.status() == reqwest::StatusCode::OK => Lookup::Stored,
             Ok(res) if res.status() == reqwest::StatusCode::UPGRADE_REQUIRED => Lookup::UpdateRequired,
             _ => Lookup::Missing,
@@ -63,6 +63,7 @@ impl Uploader {
         let sha = hex::encode(Sha256::digest(&bytes));
         let res = self
             .http
+            .get()
             .post(format!("{}/api/mcsr-ranked/replays", self.base))
             .header("Content-Type", "application/octet-stream")
             .header("X-Match-Id", match_id.to_string())

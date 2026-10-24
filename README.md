@@ -26,13 +26,19 @@ are still available and sends them to Magma for analysis.
   Files you download from the website are saved to your Downloads folder, as in a browser.
 - When you close the window to the tray, the website is unloaded and only the background
   sync keeps running.
-- Downloads replays of the players **you** add, from the official public replay CDN.
-- Stays within the official limits however many players you add: at most one replay download
-  every 26 seconds, and API requests at least 1.5 seconds apart (at most 400 per 10 minutes,
-  below the official 500). If the API still asks it to slow down, it waits as long as asked.
-  It identifies itself as `magma-app/<version>`.
+- Downloads replays of the players **you** add, from the official public replay CDN, in the
+  order you list them: if there are more than it can download, the top of your list comes first.
+- Stays within the official limits however many players you add: replay downloads start at
+  least 21 seconds apart (at most 3 a minute), and API requests at least 1.5 seconds apart (at
+  most 400 per 10 minutes, below the official 500). If it is rate limited anyway (for example
+  because you watch replays in game on the same connection), it waits as long as asked and
+  slows downloads to one every 30 seconds for an hour. It identifies itself as
+  `magma-app/<version>`.
+- Uses the network connection the system picks, unless you choose one in the settings
+  ("Network"). Only the app's own traffic is affected.
 - Only downloads replays from the last 7 days that it has not handled before.
-- Optionally saves a copy of each replay to a folder you choose.
+- Optionally saves a copy of each replay to a folder you choose (by default your MCSR Ranked
+  replay folder, found by looking in the usual launcher folders, so copies show up in game).
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**
 - Checks this repository's GitHub Releases for updates. A new version is installed when the app
   starts with Windows, or when you click "Update" in the title bar; it never closes on you

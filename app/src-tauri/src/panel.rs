@@ -49,8 +49,103 @@ pub fn panel_init(webview: Webview, store: State<'_, Store>) -> Result<PanelInit
     })
 }
 
+/// Where copies go unless the user picks a folder: the game's own replay folder, so the
+/// replays show up under "My Replays" in MCSR Ranked. Falls back to Documents\MCSR Replays.
 fn default_folder(app: &AppHandle) -> Option<String> {
-    app.path().document_dir().ok().map(|d| d.join("MCSR Replays").to_string_lossy().into_owned())
+    game_replay_folder(app)
+        .or_else(|| app.path().document_dir().ok().map(|d| d.join("MCSR Replays")))
+        .map(|p| p.to_string_lossy().into_owned())
+}
+
+/// The `mcsrranked\replay` folder of an MCSR Ranked install, if one exists. Looks in the
+/// usual places of the common launchers; with several, takes the most recently used.
+fn game_replay_folder(app: &AppHandle) -> Option<std::path::PathBuf> {
+    find_game_replay_folder(app.path().data_dir().ok().as_deref(), app.path().home_dir().ok().as_deref())
+}
+
+/// `roaming` is %APPDATA%, `home` the user's home folder (separate so tests can use fake ones).
+fn find_game_replay_folder(roaming: Option<&std::path::Path>, home: Option<&std::path::Path>) -> Option<std::path::PathBuf> {
+    use std::path::PathBuf;
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    fn add_instances(out: &mut Vec<PathBuf>, root: PathBuf, game_dirs: &[&str]) {
+        if let Ok(entries) = std::fs::read_dir(&root) {
+            for entry in entries.flatten() {
+                for game_dir in game_dirs {
+                    out.push(entry.path().join(game_dir).join("mcsrranked").join("replay"));
+                }
+            }
+        }
+    }
+    if let Some(r) = roaming {
+        add_instances(&mut candidates, r.join("PrismLauncher").join("instances"), &["minecraft", ".minecraft"]);
+        add_instances(&mut candidates, r.join("ModrinthApp").join("profiles"), &[""]);
+        add_instances(&mut candidates, r.join("com.modrinth.theseus").join("profiles"), &[""]);
+        candidates.push(r.join(".minecraft").join("mcsrranked").join("replay"));
+    }
+    if let Some(h) = home {
+        add_instances(&mut candidates, h.join("curseforge").join("minecraft").join("Instances"), &[""]);
+    }
+    candidates
+        .into_iter()
+        .filter(|p| p.is_dir())
+        .max_by_key(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::find_game_replay_folder;
+    use std::path::{Path, PathBuf};
+
+    /// A fresh empty folder standing in for %APPDATA% and the home folder.
+    fn fake_root(name: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("magma-app-test-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        root
+    }
+
+    fn make(root: &Path, rel: &str) -> PathBuf {
+        let p = root.join(rel);
+        std::fs::create_dir_all(&p).unwrap();
+        p
+    }
+
+    #[test]
+    fn finds_each_launcher() {
+        for (name, rel, in_home) in [
+            ("prism", "PrismLauncher/instances/MCSR Ranked/minecraft/mcsrranked/replay", false),
+            ("prism-dot", "PrismLauncher/instances/Ranked/.minecraft/mcsrranked/replay", false),
+            ("modrinth", "ModrinthApp/profiles/MCSR/mcsrranked/replay", false),
+            ("theseus", "com.modrinth.theseus/profiles/MCSR/mcsrranked/replay", false),
+            ("vanilla", ".minecraft/mcsrranked/replay", false),
+            ("curseforge", "curseforge/minecraft/Instances/MCSR/mcsrranked/replay", true),
+        ] {
+            let root = fake_root(name);
+            let expected = make(&root, rel);
+            let found = if in_home { find_game_replay_folder(None, Some(&root)) } else { find_game_replay_folder(Some(&root), None) };
+            assert_eq!(found.map(|p| p.components().collect::<PathBuf>()), Some(expected.components().collect::<PathBuf>()), "{name}");
+            let _ = std::fs::remove_dir_all(&root);
+        }
+    }
+
+    #[test]
+    fn nothing_found_without_the_mod_folder() {
+        let root = fake_root("empty");
+        make(&root, "PrismLauncher/instances/Vanilla 1.21/minecraft/saves");
+        assert_eq!(find_game_replay_folder(Some(&root), Some(&root)), None);
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn several_installs_pick_the_most_recent() {
+        let root = fake_root("several");
+        make(&root, "PrismLauncher/instances/Old/minecraft/mcsrranked/replay");
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        let newer = make(&root, "PrismLauncher/instances/New/minecraft/mcsrranked/replay");
+        let found = find_game_replay_folder(Some(&root), None).unwrap();
+        assert_eq!(found.components().collect::<PathBuf>(), newer.components().collect::<PathBuf>());
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }
 
 #[tauri::command]
@@ -138,6 +233,20 @@ pub fn set_run_in_tray(webview: Webview, store: State<'_, Store>, enabled: bool)
 pub fn set_paused(webview: Webview, store: State<'_, Store>, paused: bool) -> Result<Settings, String> {
     guard(&webview)?;
     apply(webview.app_handle(), &store, |s| s.paused = paused)
+}
+
+/// Network connections the user can sync through (see network.rs).
+#[tauri::command]
+pub fn network_options(webview: Webview) -> Result<Vec<crate::network::Connection>, String> {
+    guard(&webview)?;
+    Ok(crate::network::connections())
+}
+
+/// Sync through this connection, by name; None lets the system decide.
+#[tauri::command]
+pub fn set_network(webview: Webview, store: State<'_, Store>, name: Option<String>) -> Result<Settings, String> {
+    guard(&webview)?;
+    apply(webview.app_handle(), &store, |s| s.network = name)
 }
 
 #[tauri::command]

@@ -434,9 +434,20 @@ function RecentMatches({ me }: { me: Tracked }) {
   useEffect(() => {
     setList(null);
     load();
-    const timer = window.setInterval(load, 30_000);
-    return () => window.clearInterval(timer);
+    // A match just analyzed (the same moment as the notification)
+    const unlisten = listen("own-analyzed", () => load());
+    return () => {
+      unlisten.then((f) => f());
+    };
   }, [me.uuid]);
+  // Every 5 seconds while a match from the last hour is on its way (the ones the app hurries), otherwise
+  // every 30: an older match waiting in the backlog would only use up API requests
+  const busy =
+    list?.some((m) => Date.now() / 1000 - m.date < 3600 && (m.state === "waiting" || m.state === "uploading" || m.state === "analyzing")) ?? false;
+  useEffect(() => {
+    const timer = window.setInterval(load, busy ? 5_000 : 30_000);
+    return () => window.clearInterval(timer);
+  }, [me.uuid, busy]);
 
   return (
     <section className="card">

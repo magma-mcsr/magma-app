@@ -25,7 +25,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::Notify;
 
 use crate::mcsr::{Client, MatchSummary};
@@ -444,6 +444,8 @@ fn notify_when_analyzed(app: &AppHandle, me: &TrackedPlayer, m: &MatchSummary) {
         for _ in 0..ANALYZED_TRIES {
             tokio::time::sleep(ANALYZED_POLL).await;
             if uploader.analyzed(&[id]).await.is_some_and(|done| done.contains(&id)) {
+                // The App tab's list updates at the same moment as the notification
+                let _ = app.emit_to(crate::shell::PANEL_LABEL, "own-analyzed", id);
                 crate::notify::analysis_ready(&app, &nickname, id, &summary);
                 return;
             }

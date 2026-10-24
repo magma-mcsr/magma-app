@@ -25,7 +25,6 @@ use crate::sync::{Engine, Live, Phase};
 pub const SITE_URL: &str = "https://magmamcsr.com";
 /// Title bar height and panel width in logical pixels.
 const TITLEBAR_HEIGHT: f64 = 36.0;
-const PANEL_WIDTH: f64 = 380.0;
 pub const TITLEBAR_LABEL: &str = "titlebar";
 pub const PANEL_LABEL: &str = "panel";
 /// A card over the website: "Update required" or "What's new" (notice.html).
@@ -117,13 +116,16 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
         LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
         LogicalSize::new(size.width, content_h),
     )?;
-    // Added last so it sits on top of the website.
+    // The app's own view ("App" tab). Added last so it sits on top of the website, which stays
+    // loaded underneath while the app is shown.
     let panel = window.add_child(
         // Tauri intercepts drag events for file drops on Windows, which breaks HTML
-        // drag-and-drop (used to reorder players). The panel never takes file drops.
-        WebviewBuilder::new(PANEL_LABEL, WebviewUrl::App("panel.html".into())).disable_drag_drop_handler(),
-        LogicalPosition::new((size.width - PANEL_WIDTH).max(0.0), TITLEBAR_HEIGHT),
-        LogicalSize::new(PANEL_WIDTH.min(size.width), content_h),
+        // drag-and-drop (used to reorder players). The app view never takes file drops.
+        WebviewBuilder::new(PANEL_LABEL, WebviewUrl::App("panel.html".into()))
+            .disable_drag_drop_handler()
+            .background_color(tauri::window::Color(18, 18, 20, 255)),
+        LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
+        LogicalSize::new(size.width, content_h),
     )?;
     panel.hide()?;
 
@@ -166,8 +168,9 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
     }
     let _ = window.set_focus();
 
-    // First run: open the panel so the user can set up sync.
-    if app.state::<Store>().get().players.is_empty() {
+    // First run: show the app view, which starts with setting up sync.
+    let settings = app.state::<Store>().get();
+    if settings.players.is_empty() && !settings.welcome_dismissed {
         set_panel(app, true);
     }
     Ok(())
@@ -347,21 +350,20 @@ fn layout(app: &AppHandle, window: &Window) {
         let _ = bar.set_position(PhysicalPosition::new(0, 0));
         let _ = bar.set_size(PhysicalSize::new(size.width, bar_h));
     }
-    let panel_w = ((PANEL_WIDTH * scale).round() as u32).min(size.width);
     if let Some(site) = app.get_webview(SITE_LABEL) {
         let _ = site.set_position(PhysicalPosition::new(0, bar_h as i32));
         let _ = site.set_size(PhysicalSize::new(size.width, content_h));
     }
-    // The notice sits above the panel, so it makes room for it when the panel is open.
+    // A notice covers the website, so it is hidden while the app is the view.
+    let app_view = app.state::<PanelState>().0.load(Ordering::Relaxed);
     if let Some(notice) = app.get_webview(NOTICE_LABEL) {
-        let panel_open = app.state::<PanelState>().0.load(Ordering::Relaxed);
-        let width = if panel_open { size.width - panel_w } else { size.width };
         let _ = notice.set_position(PhysicalPosition::new(0, bar_h as i32));
-        let _ = notice.set_size(PhysicalSize::new(width, content_h));
+        let _ = notice.set_size(PhysicalSize::new(size.width, content_h));
+        let _ = if app_view { notice.hide() } else { notice.show() };
     }
     if let Some(panel) = app.get_webview(PANEL_LABEL) {
-        let _ = panel.set_position(PhysicalPosition::new((size.width - panel_w) as i32, bar_h as i32));
-        let _ = panel.set_size(PhysicalSize::new(panel_w, content_h));
+        let _ = panel.set_position(PhysicalPosition::new(0, bar_h as i32));
+        let _ = panel.set_size(PhysicalSize::new(size.width, content_h));
     }
 }
 
@@ -444,7 +446,7 @@ fn build_tray(app: &App) -> tauri::Result<()> {
     Ok(())
 }
 
-// ---------- sync status (shown in the title bar pill and the panel) ----------
+// ---------- sync status (the App tab's dot in the title bar, and the app view) ----------
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -571,11 +573,11 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
     // While a notice covers the website: "Update required" keeps the website buttons and
     // the panel off (the title bar greys them out). "What's new" closes for the website
     // buttons, which would otherwise act unseen behind it, and makes room for the panel.
-    if matches!(action, "back" | "forward" | "reload" | "panel") {
+    if matches!(action, "back" | "forward" | "reload" | "panel" | "tab-app") {
         let notice = *app.state::<NoticeState>().0.lock().expect("notice");
         match notice {
             Some(Notice::Required) => return Ok(()),
-            Some(Notice::WhatsNew) if action != "panel" => {
+            Some(Notice::WhatsNew) if !matches!(action, "panel" | "tab-app") => {
                 // Closing a webview from a synchronous command can deadlock; do it async.
                 let handle = app.clone();
                 tauri::async_runtime::spawn(async move { hide_notice(&handle) });
@@ -590,6 +592,14 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
         "panel" => {
             let open = !app.state::<PanelState>().0.load(Ordering::Relaxed);
             set_panel(app, open);
+            Ok(())
+        }
+        "tab-app" => {
+            set_panel(app, true);
+            Ok(())
+        }
+        "tab-site" => {
+            set_panel(app, false);
             Ok(())
         }
         "minimize" => window.minimize(),

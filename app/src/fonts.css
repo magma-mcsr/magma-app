@@ -1,0 +1,11 @@
+/* Inter, the same font file as magmamcsr.com, bundled so the app looks the same on every
+   computer (Windows has no Inter of its own). Licensed under the SIL Open Font License:
+   public/fonts/LICENSE-Inter.txt. The family is named InterVariable so a locally installed
+   static Inter never takes its place. */
+@font-face {
+  font-family: InterVariable;
+  src: url(/fonts/InterVariable.woff2) format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}

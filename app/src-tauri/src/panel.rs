@@ -146,16 +146,88 @@ pub async fn detect_accounts(webview: Webview, client: State<'_, Client>) -> Res
     Ok(found)
 }
 
-/// Show a player's match list on the website, right after they add themselves.
+/// Load a player's match list (or one match) on the website. With `show`, switch to the website.
 #[tauri::command]
-pub fn show_player_matches(webview: Webview, nickname: String) -> Result<(), String> {
+pub fn show_player_matches(webview: Webview, nickname: String, match_id: Option<i64>, show: Option<bool>) -> Result<(), String> {
     guard(&webview)?;
     if nickname.is_empty() || nickname.len() > 16 || !nickname.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return Err("invalid name".into());
     }
-    let url = format!("{}/ranked/player/{nickname}/matches", crate::shell::SITE_URL).parse().map_err(|e| format!("{e}"))?;
-    let site = webview.app_handle().get_webview(crate::shell::SITE_LABEL).ok_or("no website view")?;
-    site.navigate(url).map_err(|e| e.to_string())
+    let path = match match_id {
+        Some(id) => format!("/ranked/player/{nickname}/matches/{id}"),
+        None => format!("/ranked/player/{nickname}/matches"),
+    };
+    let url = format!("{}{path}", crate::shell::SITE_URL).parse().map_err(|e| format!("{e}"))?;
+    let app = webview.app_handle();
+    let site = app.get_webview(crate::shell::SITE_LABEL).ok_or("no website view")?;
+    site.navigate(url).map_err(|e| e.to_string())?;
+    if show == Some(true) {
+        shell::set_panel(app, false);
+    }
+    Ok(())
+}
+
+/// "Not now" on the first-run welcome: remember it and show the website.
+#[tauri::command]
+pub fn dismiss_welcome(webview: Webview, store: State<'_, Store>) -> Result<Settings, String> {
+    guard(&webview)?;
+    let settings = apply(webview.app_handle(), &store, |s| s.welcome_dismissed = true)?;
+    shell::set_panel(webview.app_handle(), false);
+    Ok(settings)
+}
+
+/// One of the first player's newest matches, and how far the app got with it.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OwnMatch {
+    id: i64,
+    /// Unix seconds when it ended.
+    date: i64,
+    opponent: Option<String>,
+    /// "won", "lost" or "draw" for the first player.
+    outcome: &'static str,
+    forfeited: bool,
+    /// "analyzed" (Magma has it), "uploading", "waiting" (not downloaded yet), "no_replay".
+    state: &'static str,
+}
+
+/// The first player's newest matches with their sync state, for the app view.
+#[tauri::command]
+pub async fn recent_own(webview: Webview, client: State<'_, Client>, store: State<'_, Store>) -> Result<Vec<OwnMatch>, String> {
+    guard(&webview)?;
+    let Some(me) = store.get().players.first().cloned() else { return Ok(Vec::new()) };
+    let matches = client.newest_matches(&me.uuid, 8).await?;
+    let dir = crate::settings::app_dir(webview.app_handle()).map_err(|e| e.to_string())?;
+    let (processed, pending) = (crate::sync::processed_ids(&dir), crate::sync::pending_ids(&dir));
+    let uploader = crate::upload::Uploader::new();
+    let mut out = Vec::new();
+    for m in matches {
+        let state = if m.replay_exists == 0 {
+            "no_replay"
+        } else if pending.contains(&m.id) {
+            "uploading"
+        } else if matches!(uploader.has(m.id).await, crate::upload::Lookup::Stored) {
+            "analyzed"
+        } else if processed.contains(&m.id) {
+            "uploading"
+        } else {
+            "waiting"
+        };
+        let outcome = match m.result.uuid.as_deref() {
+            None => "draw",
+            Some(w) if w == me.uuid => "won",
+            Some(_) => "lost",
+        };
+        out.push(OwnMatch {
+            id: m.id,
+            date: m.date,
+            opponent: m.players.iter().find(|p| p.uuid != me.uuid).map(|p| p.nickname.clone()),
+            outcome,
+            forfeited: m.forfeited,
+            state,
+        });
+    }
+    Ok(out)
 }
 
 #[tauri::command]

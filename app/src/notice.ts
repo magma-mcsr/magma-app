@@ -5,6 +5,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import changelog from "../../CHANGELOG.md?raw";
 import { customScrollbar } from "./scrollbar";
+import "./fonts.css";
 import "./notice.css";
 
 type Mode = { mode: "required" | "whats-new"; version: string };

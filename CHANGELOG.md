@@ -3,9 +3,18 @@
 What changed in each version of the Magma MCSR app. The app shows the section for its own
 version after an update, and each GitHub release uses the same text.
 
-## 0.1.4
+## 0.2.0
 
-- The settings panel and update notices use the same slim scrollbar as the website.
+- **The app has its own tab**: the title bar switches between **Website** and **App**, like browser
+  tabs. The App tab fills the window and replaces the settings panel: your recent matches and
+  whether each one is analyzed yet (click one to open it on the website), the players to sync,
+  and the settings. The website stays loaded while you are in the App tab.
+- **Set up in one step**: the first time you open the app, the App tab explains what it does and
+  asks "Is this you?" with your Minecraft name already filled in when the app finds it in this
+  computer's Minecraft logs (Prism Launcher, MultiMC, Modrinth, CurseForge and the official
+  launcher). One click tracks your matches.
+- The app uses the same font as the website (Inter).
+- The app's pages and update notices use the same slim scrollbar as the website.
 - **Faster sync, safely within the limits**
   - Replays download about 25% faster (one every 21 seconds instead of 26), the most the replay
     server allows without blocking.
@@ -17,7 +26,7 @@ version after an update, and each GitHub release uses the same text.
   half an hour even during a big backlog.
 - **Your new matches right away**: the first player in your list (usually you) is checked every
   15 seconds, so a match you just finished is analyzed within about a minute instead of waiting for
-  the next round. "Check now" in Settings looks immediately.
+  the next round. "Check now" in the App tab looks immediately.
 - **Choose a network**: on a computer with more than one connection (for example wired and
   Wi-Fi), pick which one the app uses in Settings → Network.
 - **Watch your replays in game**: when you turn on "Keep a copy of replays", copies now go to

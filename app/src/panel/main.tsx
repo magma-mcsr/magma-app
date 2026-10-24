@@ -1,9 +1,11 @@
-// Replay sync settings panel. Runs as its own local webview over the website's right edge.
+// The app's own view (the "App" tab): first-run welcome, then your recent matches, the players
+// to sync and the settings. Runs as its own local webview over the website.
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { customScrollbar } from "../scrollbar";
+import "../fonts.css";
 import "./panel.css";
 
 type Tracked = { uuid: string; nickname: string };
@@ -17,7 +19,16 @@ type Settings = {
   network: string | null;
 };
 type Connection = { name: string; address: string };
-type Init = { settings: Settings; version: string; defaultFolder: string | null };
+type SyncStatus = { state: string; label: string };
+type Init = { settings: Settings; version: string; defaultFolder: string | null; status: SyncStatus };
+type OwnMatch = {
+  id: number;
+  date: number;
+  opponent: string | null;
+  outcome: "won" | "lost" | "draw";
+  forfeited: boolean;
+  state: "analyzed" | "uploading" | "waiting" | "no_replay";
+};
 
 // Until magmamcsr.com has a privacy page, this explains what the app does and sends.
 const LEARN_MORE = "https://github.com/magma-mcsr/magma-app#what-it-does";
@@ -32,12 +43,15 @@ function Avatar({ uuid, name }: { uuid: string; name: string }) {
 
 /** Small info icon with a hover tooltip. */
 /** Ask for the first player's newest matches right away; the label says so for a moment. */
-function CheckNow() {
+function CheckNow({ onChecked }: { onChecked?: () => void }) {
   const [busy, setBusy] = useState(false);
   const click = () => {
     setBusy(true);
     invoke("check_now").catch(console.error);
-    setTimeout(() => setBusy(false), 3000);
+    setTimeout(() => {
+      setBusy(false);
+      onChecked?.();
+    }, 3000);
   };
   return (
     <button className="link" disabled={busy} onClick={click}>
@@ -87,32 +101,6 @@ function NetworkPicker({ value, onChange }: { value: string | null; onChange: (n
       ))}
       {missing && <option value={value}>{value} (not connected)</option>}
     </select>
-  );
-}
-
-/** First run: Minecraft names that played MCSR Ranked on this computer, one click to track. */
-function Found({ onAdded }: { onAdded: (s: Settings) => void }) {
-  const [found, setFound] = useState<Tracked[]>([]);
-  useEffect(() => {
-    invoke<Tracked[]>("detect_accounts").then(setFound).catch(() => setFound([]));
-  }, []);
-  async function track(p: Tracked) {
-    onAdded(await invoke<Settings>("add_player", { player: { uuid: p.uuid, nickname: p.nickname } }));
-    invoke("show_player_matches", { nickname: p.nickname }).catch(console.error);
-  }
-  if (found.length === 0) return null;
-  return (
-    <div className="found">
-      {found.map((p) => (
-        <button key={p.uuid} className="found-player" onClick={() => track(p)}>
-          <Avatar uuid={p.uuid} name={p.nickname} />
-          <span className="name">
-            Track <strong>{p.nickname}</strong>
-          </span>
-        </button>
-      ))}
-      <p className="found-note">Found on this computer.</p>
-    </div>
   );
 }
 
@@ -235,131 +223,291 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
           </button>
         </div>
       ))}
-      {order.length === 0 && <Found onAdded={setSettings} />}
       <AddPlayer onAdded={setSettings} first={order.length === 0} />
+    </section>
+  );
+}
+
+const LEARN = (
+  <button className="link" onClick={() => invoke("open_link", { url: LEARN_MORE })}>
+    Learn more
+  </button>
+);
+
+function ago(unix: number): string {
+  const s = Math.max(0, Date.now() / 1000 - unix);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+/** What a match page on Magma shows, as a small static sample. */
+function Preview() {
+  const lines: [string, string, boolean][] = [
+    ["7:10", "zero cycle failed (died after 6 beds: shot a crystal next to them) · y95 · dragon at 1 HP", true],
+    ["8:41", "zero cycle failed (dragon flew) · y90 · dragon at 105 HP", true],
+    ["12:04", "one cycle", false],
+  ];
+  return (
+    <div className="preview" aria-hidden>
+      <div className="preview-title">Highlights</div>
+      {lines.map(([t, text, key]) => (
+        <div className="preview-line" key={t}>
+          <span className="preview-time">{t}</span>
+          <span className={key ? "preview-mark on" : "preview-mark"} />
+          <span>{text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** First run: what the app is for, and the one step to set it up. */
+function Welcome({ onSettings }: { onSettings: (s: Settings) => void }) {
+  const [name, setName] = useState("");
+  const [found, setFound] = useState<Tracked | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    invoke<Tracked[]>("detect_accounts")
+      .then((list) => {
+        if (!list[0]) return;
+        setFound(list[0]);
+        setName((typed) => typed || list[0].nickname);
+      })
+      .catch(() => {});
+  }, []);
+  const isFound = found !== null && found.nickname.toLowerCase() === name.trim().toLowerCase();
+
+  async function track(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const p = await invoke<Tracked>("lookup_player", { name });
+      const settings = await invoke<Settings>("add_player", { player: { uuid: p.uuid, nickname: p.nickname } });
+      // Ready on the website for when they switch to it
+      invoke("show_player_matches", { nickname: p.nickname }).catch(console.error);
+      onSettings(settings);
+    } catch (err) {
+      setError(String(err));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="welcome">
+      <h1>See your analysis after every match</h1>
+      <p className="lead">
+        Magma breaks down your MCSR Ranked matches: highlights, how each End fight went, where time was won or lost. This
+        app sends your new replays to Magma in the background, so the analysis is on your Matches page about a minute after
+        each match.
+      </p>
+      <Preview />
+      <ol className="steps">
+        <li>
+          <strong>Track yourself</strong>
+          <span>Confirm your name below.</span>
+        </li>
+        <li>
+          <strong>Play Ranked</strong>
+          <span>The app watches for your new matches while it runs.</span>
+        </li>
+        <li>
+          <strong>Open your Matches page</strong>
+          <span>The analysis is there about a minute after the match.</span>
+        </li>
+      </ol>
+      <form className="you" onSubmit={track}>
+        <label htmlFor="you">Is this you?</label>
+        <div className="you-row">
+          {isFound && <Avatar uuid={found!.uuid} name={found!.nickname} />}
+          <input
+            id="you"
+            value={name}
+            onChange={(e) => setName(e.currentTarget.value)}
+            placeholder="Your Minecraft name"
+            spellCheck={false}
+            autoFocus
+            disabled={busy}
+          />
+          <button className="btn primary" type="submit" disabled={busy || !name.trim()}>
+            {busy ? "Looking up…" : "Track my matches"}
+          </button>
+        </div>
+        <p className="hint">
+          {isFound ? "Found in this computer's Minecraft logs. " : found ? "" : "Type your Minecraft name. "}
+          Analyses are public. {LEARN}
+        </p>
+        {error && <div className="error">{error}</div>}
+      </form>
+      <button className="link quiet" onClick={() => invoke<Settings>("dismiss_welcome").then(onSettings).catch(console.error)}>
+        Not now
+      </button>
+    </div>
+  );
+}
+
+const STATE_LABEL: Record<OwnMatch["state"], string> = {
+  analyzed: "Open analysis",
+  uploading: "Uploading",
+  waiting: "Waiting",
+  no_replay: "No replay",
+};
+
+/** The first player's newest matches and how far each one got. */
+function RecentMatches({ me }: { me: Tracked }) {
+  const [list, setList] = useState<OwnMatch[] | null>(null);
+  const load = () =>
+    invoke<OwnMatch[]>("recent_own")
+      .then(setList)
+      .catch(() => setList((l) => l ?? []));
+  useEffect(() => {
+    setList(null);
+    load();
+    const timer = window.setInterval(load, 30_000);
+    return () => window.clearInterval(timer);
+  }, [me.uuid]);
+
+  return (
+    <section className="card">
+      <div className="card-head">
+        <h2 className="card-title">Your recent matches</h2>
+        <span className="card-note">{me.nickname}</span>
+        <span className="spacer" />
+        <CheckNow onChecked={load} />
+      </div>
+      {list === null ? (
+        <p className="muted">Loading…</p>
+      ) : list.length === 0 ? (
+        <p className="muted">No matches yet. Play a Ranked match and it shows up here.</p>
+      ) : (
+        <ul className="matches">
+          {list.map((m) => (
+            <li key={m.id}>
+              <button
+                className="match"
+                disabled={m.state !== "analyzed"}
+                onClick={() => invoke("show_player_matches", { nickname: me.nickname, matchId: m.id, show: true }).catch(console.error)}
+              >
+                <span className={`outcome ${m.outcome}`}>{m.outcome === "won" ? "Won" : m.outcome === "lost" ? "Lost" : "Draw"}</span>
+                <span className="vs">
+                  vs {m.opponent ?? "?"}
+                  {m.forfeited && <span className="muted"> · forfeit</span>}
+                </span>
+                <span className="when">{ago(m.date)}</span>
+                <span className={`state ${m.state}`}>{STATE_LABEL[m.state]}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="card-foot">
+        Checked every 15 seconds. A match you just finished is usually analyzed within a minute.
+      </p>
     </section>
   );
 }
 
 function Panel({ init }: { init: Init }) {
   const [settings, setSettings] = useState(init.settings);
+  const [status, setStatus] = useState(init.status);
   const empty = settings.players.length === 0;
   const body = useRef<HTMLDivElement>(null);
   useEffect(() => customScrollbar(body.current!), []);
 
   useEffect(() => {
-    const unlisten = listen<Settings>("settings-changed", ({ payload }) => setSettings(payload));
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && invoke("close_panel");
-    window.addEventListener("keydown", onKey);
+    const a = listen<Settings>("settings-changed", ({ payload }) => setSettings(payload));
+    const b = listen<SyncStatus>("sync-status", ({ payload }) => setStatus(payload));
     return () => {
-      unlisten.then((f) => f());
-      window.removeEventListener("keydown", onKey);
+      a.then((f) => f());
+      b.then((f) => f());
     };
   }, []);
 
   const set = (cmd: string, args: Record<string, unknown>) => invoke<Settings>(cmd, args).then(setSettings).catch(console.error);
-  const learnMore = (
-    <button className="link" onClick={() => invoke("open_link", { url: LEARN_MORE })}>
-      Learn more
-    </button>
-  );
 
   return (
     <div className="panel">
-      <header>
-        <span className="title">Settings</span>
-        <span className="spacer" />
-        <button className="close" aria-label="Close" onClick={() => invoke("close_panel")}>
-          ✕
-        </button>
-      </header>
-
       <div className="body-row">
-      <div className="body" ref={body}>
-        <section className="group">
-          <div className="group-head">
-            <h2 className="group-title">Replay sync</h2>
-            {!empty && (
-              // Master switch for sync only: on = syncing, off = paused.
-              <Toggle label="Sync replays" checked={!settings.paused} onChange={(on) => set("set_paused", { paused: !on })} />
+        <div className="body" ref={body}>
+          <div className="page">
+            {empty ? (
+              <Welcome onSettings={setSettings} />
+            ) : (
+              <>
+                <header className="page-head">
+                  <h1>Replay sync</h1>
+                  <span className={`status ${status.state}`}>{status.label}</span>
+                  <span className="spacer" />
+                  {/* Master switch for sync only: on = syncing, off = paused. */}
+                  <Toggle label="Sync replays" checked={!settings.paused} onChange={(on) => set("set_paused", { paused: !on })} />
+                </header>
+
+                <RecentMatches me={settings.players[0]} />
+
+                <section className="card">
+                  <Players settings={settings} setSettings={setSettings} />
+                </section>
+
+                <section className="card">
+                  <h2 className="card-title">Settings</h2>
+                  <div className="setting">
+                    <span>
+                      Keep a copy of replays{" "}
+                      <InfoTip text="Saved to your MCSR Ranked replay folder when the app finds it, so they show up under My Replays in game." />
+                    </span>
+                    <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
+                  </div>
+                  {settings.keepCopy && (
+                    // Belongs to the toggle above, so it is indented under it.
+                    <div className="sub">
+                      <div className="folder">
+                        {/* The folder icon is a familiar enough convention to stand alone; the tooltip names it. */}
+                        <span className="tip">
+                          <button className="icon-button" aria-label="Change folder" onClick={() => set("choose_folder", {})}>
+                            <svg viewBox="0 0 16 16" aria-hidden>
+                              <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.5h5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
+                            </svg>
+                          </button>
+                          <span className="bubble short" role="tooltip">
+                            Change folder
+                          </span>
+                        </span>
+                        <span className="path">{settings.copyFolder ?? init.defaultFolder}</span>
+                      </div>
+                      <div className="example">{EXAMPLE_FILE}</div>
+                    </div>
+                  )}
+                  <div className="setting">
+                    <span>
+                      Network{" "}
+                      <InfoTip text="Which connection downloads and uploads go through. Pick a different one than other computers syncing on the same network: each connection has its own download limit." />
+                    </span>
+                    <NetworkPicker value={settings.network} onChange={(name) => set("set_network", { name })} />
+                  </div>
+                  <div className="setting">
+                    <span>Start with Windows</span>
+                    <Toggle label="Start with Windows" checked={settings.startWithWindows} onChange={(v) => set("set_start_with_windows", { enabled: v })} />
+                  </div>
+                  <div className="setting">
+                    <span>Keep running in the tray</span>
+                    <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
+                  </div>
+                </section>
+
+                <footer>
+                  <span>Replays are uploaded to Magma and analyses are public. {LEARN}</span>
+                  <button className="link version" onClick={() => invoke("show_whats_new").catch(console.error)}>
+                    v{init.version} · What's new
+                  </button>
+                </footer>
+              </>
             )}
           </div>
-          {empty && (
-            // First run: the full explanation, shown once before anything is downloaded.
-            <p className="notice intro">
-              Add yourself first: your new matches are downloaded in the background and uploaded to Magma for analysis, and
-              show up on your Matches page about a minute after they end. You can add other players too. Analyses are public.{" "}
-              {learnMore}
-            </p>
-          )}
-          <Players settings={settings} setSettings={setSettings} />
-          {!empty && (
-            <div className="setting">
-              <span>
-                New matches of {settings.players[0].nickname}{" "}
-                <InfoTip text="The first player in the list is checked every 15 seconds, so a match they just finished is uploaded within moments. Check now looks right away." />
-              </span>
-              <CheckNow />
-            </div>
-          )}
-          <div className="setting">
-            <span>
-              Keep a copy of replays{" "}
-              <InfoTip text="Saved to your MCSR Ranked replay folder when the app finds it, so they show up under My Replays in game." />
-            </span>
-            <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
-          </div>
-          {settings.keepCopy && (
-            // Belongs to the toggle above, so it is indented under it.
-            <div className="sub">
-              <div className="folder">
-                {/* The folder icon is a familiar enough convention to stand alone; the tooltip names it. */}
-                <span className="tip">
-                  <button className="icon-button" aria-label="Change folder" onClick={() => set("choose_folder", {})}>
-                    <svg viewBox="0 0 16 16" aria-hidden>
-                      <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.5h5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
-                    </svg>
-                  </button>
-                  <span className="bubble short" role="tooltip">
-                    Change folder
-                  </span>
-                </span>
-                <span className="path">{settings.copyFolder ?? init.defaultFolder}</span>
-              </div>
-              <div className="example">{EXAMPLE_FILE}</div>
-            </div>
-          )}
-          <div className="setting">
-            <span>
-              Network{" "}
-              <InfoTip text="Which connection downloads and uploads go through. Pick a different one than other computers syncing on the same network: each connection has its own download limit." />
-            </span>
-            <NetworkPicker value={settings.network} onChange={(name) => set("set_network", { name })} />
-          </div>
-        </section>
-
-        <section className="group divided">
-          <div className="group-head">
-            <h2 className="group-title">App</h2>
-          </div>
-          <div className="setting">
-            <span>Start with Windows</span>
-            <Toggle label="Start with Windows" checked={settings.startWithWindows} onChange={(v) => set("set_start_with_windows", { enabled: v })} />
-          </div>
-          <div className="setting">
-            <span>Keep running in the tray</span>
-            <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
-          </div>
-        </section>
-
-        <footer>
-          {/* While the list is empty, the same sentence is already in the intro above. */}
-          <span>{!empty && <>Replays are uploaded to Magma and analyses are public. {learnMore}</>}</span>
-          <button className="link version" onClick={() => invoke("show_whats_new").catch(console.error)}>
-            v{init.version} · What's new
-          </button>
-        </footer>
-      </div>
+        </div>
       </div>
     </div>
   );

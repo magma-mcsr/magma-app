@@ -1,6 +1,6 @@
 :root {
   color-scheme: dark;
-  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-family: InterVariable, "Segoe UI", system-ui, sans-serif;
   font-size: 13px;
 }
 
@@ -161,27 +161,45 @@ button {
   display: none;
 }
 
-/* Sync status pill: status and entry to the settings panel in one element. */
-.pill {
+/* Website / App, like browser tabs. */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-right: 6px;
+}
+
+.tab {
   display: flex;
   align-items: center;
-  gap: 7px;
-  height: 24px;
-  margin-right: 8px;
-  padding: 0 11px;
-  border: 1px solid #26272b;
-  border-radius: 999px;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
   color: #a1a2a8;
-  font-size: 12px;
   white-space: nowrap;
 }
 
-.pill:hover,
-.pill.open {
-  background: #1a1b1e;
+.tab:hover {
+  background: #1f2024;
   color: #f2f2f4;
 }
 
+.tab[aria-selected="true"] {
+  background: #26272b;
+  color: #f2f2f4;
+}
+
+.tab:disabled {
+  opacity: 0.4;
+}
+
+/* The website's own buttons and section name are hidden while the app is the view. */
+.bar.app-active .nav,
+.bar.app-active .section {
+  display: none;
+}
+
+/* Replay sync state on the App tab. */
 .dot {
   width: 6px;
   height: 6px;
@@ -189,27 +207,22 @@ button {
   background: #5c5e66;
 }
 
-.pill[data-state="ready"] .dot {
+.tab[data-state="ready"] .dot {
   background: #4caf7a;
 }
 
-.pill[data-state="paused"] .dot {
+.tab[data-state="paused"] .dot {
   background: #8b8d94;
 }
 
 /* Checking or downloading. */
-.pill[data-state="busy"] .dot {
+.tab[data-state="busy"] .dot {
   background: #5aa9f0;
   animation: pulse 1.4s ease-in-out infinite;
 }
 
 /* Some replays will expire before they can be downloaded. */
-.pill[data-state="warning"] {
-  border-color: #e0b34155;
-  color: #f0cf7a;
-}
-
-.pill[data-state="warning"] .dot {
+.tab[data-state="warning"] .dot {
   background: #e0b341;
   animation: pulse 1.4s ease-in-out infinite;
 }
@@ -220,13 +233,8 @@ button {
   }
 }
 
-/* Needs the user's attention: tinted with the brand orange. */
-.pill[data-state="setup"] {
-  border-color: #f0743a66;
-  color: #f7a77d;
-}
-
-.pill[data-state="setup"] .dot {
+/* Needs the user's attention: the brand orange. */
+.tab[data-state="setup"] .dot {
   background: #f0743a;
 }
 

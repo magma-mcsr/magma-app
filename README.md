@@ -30,7 +30,7 @@ are still available and sends them to Magma for analysis.
   order you list them: if there are more than it can download, the top of your list comes first.
   The first player in your list (usually you) is also checked every 15 seconds for matches that
   ended in the last hour, so a match just played is uploaded within moments; "Check now" in the
-  settings does that check right away. These checks count toward the API limit below.
+  App tab does that check right away. These checks count toward the API limit below.
 - Stays within the official limits however many players you add: replay downloads start at
   least 21 seconds apart (at most 3 a minute), and API requests at least 1.5 seconds apart (at
   most 400 per 10 minutes, below the official 500). If it is rate limited anyway (for example
@@ -74,7 +74,7 @@ are still available and sends them to Magma for analysis.
   which hold login tokens.
 - It does not ask for your Minecraft, Microsoft or MCSR login.
 - The website shown in the window cannot use any of the app's native features (your files,
-  settings, replay sync). Only the app's own title bar and settings panel can.
+  settings, replay sync). Only the app's own title bar and App tab can.
 - A link on the website can never open files or programs on your computer: only web links
   and `mailto:` links are passed on to the system.
 

@@ -2,6 +2,7 @@
 // website never needs (or gets) access to native commands.
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import "./fonts.css";
 import "./titlebar.css";
 
 const run = (action: string) => invoke("titlebar", { action }).catch(console.error);
@@ -38,16 +39,25 @@ function sectionFor(path: string): string {
   return SECTIONS[first] ?? first.charAt(0).toUpperCase() + first.slice(1);
 }
 
-// Sync status pill: it shows the state and opens the settings panel.
+// Two views, like browser tabs: the website, and the app's own page. The App tab's dot shows
+// the replay sync state; hovering it says what that state is.
 type SyncStatus = { state: string; label: string };
-const pill = document.getElementById("pill")!;
+const bar = document.getElementById("bar")!;
+const siteTab = document.getElementById("tab-site")!;
+const appTab = document.getElementById("tab-app")!;
 const showStatus = (s: SyncStatus) => {
-  pill.dataset.state = s.state;
-  document.getElementById("pill-label")!.textContent = s.label;
+  appTab.dataset.state = s.state;
+  appTab.title = s.label;
+  appTab.setAttribute("aria-label", `App: ${s.label}`);
 };
 invoke<SyncStatus>("sync_status").then(showStatus).catch(console.error);
 listen<SyncStatus>("sync-status", ({ payload }) => showStatus(payload));
-listen<boolean>("panel-open", ({ payload }) => pill.classList.toggle("open", payload));
+// The website's back, forward and reload only show while the website is the view.
+listen<boolean>("panel-open", ({ payload }) => {
+  bar.classList.toggle("app-active", payload);
+  appTab.setAttribute("aria-selected", String(payload));
+  siteTab.setAttribute("aria-selected", String(!payload));
+});
 
 // A downloaded update shows an "Update" button; clicking it restarts into the new version.
 type UpdateStatus = { ready: string | null };
@@ -103,7 +113,7 @@ listen<{ name: string; success: boolean }>("download-finished", ({ payload }) =>
 downloadButton.addEventListener("click", () => (downloadButton.hidden = true));
 
 // While "Update required" covers the website, the buttons that act on it are off.
-const lockable = document.querySelectorAll<HTMLButtonElement>('button[data-action="back"], button[data-action="forward"], button[data-action="reload"], #pill');
+const lockable = document.querySelectorAll<HTMLButtonElement>('button[data-action="back"], button[data-action="forward"], button[data-action="reload"], #tab-app');
 const showNotice = (notice: string | null) => {
   for (const b of lockable) b.disabled = notice === "required";
 };

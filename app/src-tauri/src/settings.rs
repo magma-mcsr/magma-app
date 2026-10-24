@@ -34,6 +34,8 @@ pub struct Settings {
     pub network: Option<String>,
     /// App version that last ran, to say "Updated to ..." once after an update.
     pub last_run_version: Option<String>,
+    /// "Not now" on the first-run welcome: the app no longer opens on it.
+    pub welcome_dismissed: bool,
 }
 
 impl Default for Settings {
@@ -48,6 +50,7 @@ impl Default for Settings {
             paused: false,
             network: None,
             last_run_version: None,
+            welcome_dismissed: false,
         }
     }
 }

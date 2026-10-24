@@ -67,7 +67,7 @@ pub enum Phase {
     Downloading,
 }
 
-/// What the engine is doing right now (drives the title bar pill).
+/// What the engine is doing right now (drives the App tab's status in the title bar).
 #[derive(Clone, Default)]
 pub struct Live {
     pub phase: Phase,
@@ -143,6 +143,18 @@ impl Journal {
 
 fn now() -> i64 {
     chrono::Utc::now().timestamp()
+}
+
+/// Matches already handled (downloaded and handed to the uploader, or skipped as stored).
+pub fn processed_ids(dir: &Path) -> std::collections::HashSet<i64> {
+    Journal::load(dir).processed.into_keys().collect()
+}
+
+/// Matches downloaded and waiting to be uploaded.
+pub fn pending_ids(dir: &Path) -> std::collections::HashSet<i64> {
+    std::fs::read_dir(dir.join("pending-uploads"))
+        .map(|it| it.flatten().filter_map(|e| e.path().file_stem()?.to_str()?.parse::<i64>().ok()).collect())
+        .unwrap_or_default()
 }
 
 // ---------- file names ----------

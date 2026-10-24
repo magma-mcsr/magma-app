@@ -68,6 +68,8 @@ pub fn run() {
             panel::check_now,
             panel::detect_accounts,
             panel::show_player_matches,
+            panel::dismiss_welcome,
+            panel::recent_own,
             panel::network_options,
             panel::set_network,
             panel::close_panel,

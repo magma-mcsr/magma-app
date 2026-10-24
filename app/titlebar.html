@@ -10,6 +10,12 @@
         <img src="/magma-logo.svg" alt="" class="logo" />
         <span>Magma MCSR</span>
       </div>
+      <div class="tabs" role="tablist" aria-label="View">
+        <button class="tab" id="tab-site" data-action="tab-site" role="tab" aria-selected="true">Website</button>
+        <button class="tab" id="tab-app" data-action="tab-app" role="tab" aria-selected="false">
+          <span>App</span><span class="dot"></span>
+        </button>
+      </div>
       <div class="nav">
         <button class="icon" data-action="back" aria-label="Back">
           <svg viewBox="0 0 16 16"><path d="M10 3 5 8l5 5" /></svg>
@@ -27,9 +33,6 @@
         <span class="dot"></span><span class="download-label" id="download-label">Downloading</span><span class="download-name" id="download-name"></span>
       </button>
       <button class="update" id="update" data-action="update" hidden>Update</button>
-      <button class="pill" id="pill" data-action="panel" aria-label="Settings">
-        <span class="dot"></span><span id="pill-label">Replay sync</span>
-      </button>
       <div class="window">
         <button class="win" data-action="minimize" aria-label="Minimize">
           <span class="box"><svg viewBox="0 0 16 16"><path d="M3.5 8h9" /></svg></span>

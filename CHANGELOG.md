@@ -15,6 +15,9 @@ version after an update, and each GitHub release uses the same text.
 - **Long player lists**: when there are more replays than can be downloaded, the players at the
   top of your list always come first, and new matches of top players are found within about
   half an hour even during a big backlog.
+- **Your new matches right away**: the first player in your list (usually you) is checked every
+  15 seconds, so a match you just finished is analyzed within about a minute instead of waiting for
+  the next round. "Check now" in Settings looks immediately.
 - **Choose a network**: on a computer with more than one connection (for example wired and
   Wi-Fi), pick which one the app uses in Settings → Network.
 - **Watch your replays in game**: when you turn on "Keep a copy of replays", copies now go to

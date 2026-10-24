@@ -399,6 +399,12 @@ pub fn set_run_in_tray(webview: Webview, store: State<'_, Store>, enabled: bool)
 }
 
 #[tauri::command]
+pub fn set_notify_analyzed(webview: Webview, store: State<'_, Store>, enabled: bool) -> Result<Settings, String> {
+    guard(&webview)?;
+    apply(webview.app_handle(), &store, |s| s.notify_analyzed = enabled)
+}
+
+#[tauri::command]
 pub fn set_paused(webview: Webview, store: State<'_, Store>, paused: bool) -> Result<Settings, String> {
     guard(&webview)?;
     apply(webview.app_handle(), &store, |s| s.paused = paused)

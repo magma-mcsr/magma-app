@@ -57,6 +57,9 @@ const OWN_CHECK_INTERVAL: Duration = Duration::from_secs(15);
 const OWN_CHECK_COUNT: u32 = 5;
 /// Only matches that ended this recently are taken out of the normal order.
 const OWN_RECENT_SECS: i64 = 3600;
+/// After sending such a match, ask this often whether it is analyzed, this many times.
+const ANALYZED_POLL: Duration = Duration::from_secs(5);
+const ANALYZED_TRIES: u32 = 24;
 /// While the server refuses this app version, ask again this often.
 const UPDATE_RECHECK: Duration = Duration::from_secs(15 * 60);
 
@@ -420,7 +423,32 @@ async fn check_own(
         if !fetch(app, client, uploader, m, journal, data_dir, pending_dir, upload_blocked_until).await {
             break;
         }
+        if settings.notify_analyzed {
+            notify_when_analyzed(app, first, m);
+        }
     }
+}
+
+/// Wait in the background for Magma to finish the analysis, then show a notification.
+fn notify_when_analyzed(app: &AppHandle, me: &TrackedPlayer, m: &MatchSummary) {
+    let opponent = m.players.iter().find(|p| p.uuid != me.uuid).map_or("?", |p| p.nickname.as_str());
+    let outcome = match m.result.uuid.as_deref() {
+        None => "Draw",
+        Some(w) if w == me.uuid => "Won",
+        Some(_) => "Lost",
+    };
+    let summary = format!("{outcome} vs {opponent}");
+    let (app, nickname, id) = (app.clone(), me.nickname.clone(), m.id);
+    tauri::async_runtime::spawn(async move {
+        let uploader = Uploader::new();
+        for _ in 0..ANALYZED_TRIES {
+            tokio::time::sleep(ANALYZED_POLL).await;
+            if uploader.analyzed(&[id]).await.is_some_and(|done| done.contains(&id)) {
+                crate::notify::analysis_ready(&app, &nickname, id, &summary);
+                return;
+            }
+        }
+    });
 }
 
 fn count_pending(dir: &Path) -> usize {

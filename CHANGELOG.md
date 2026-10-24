@@ -9,6 +9,9 @@ version after an update, and each GitHub release uses the same text.
   tabs. The App tab fills the window and replaces the settings panel: your recent matches and
   whether each one is analyzed yet (click one to open it on the website), the players to sync,
   and the settings. The website stays loaded while you are in the App tab.
+- **Notified when your match is analyzed**: a Windows notification when a match you just played
+  is analyzed; click it to open the match. Only your own new matches, and it can be turned off
+  in Settings.
 - **Ready on first launch**: when the app finds your Minecraft name in this computer's Minecraft
   logs (Prism Launcher, MultiMC, Modrinth, CurseForge and the official launcher), it starts
   tracking your matches right away. The App tab says so, explains what happens, and lets you

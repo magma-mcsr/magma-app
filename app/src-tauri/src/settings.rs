@@ -41,6 +41,8 @@ pub struct Settings {
     pub auto_setup_done: bool,
     /// The App tab still shows what that automatic setup did, until "Got it".
     pub auto_tracked_notice: bool,
+    /// Windows notification when a match the first player just finished is analyzed.
+    pub notify_analyzed: bool,
 }
 
 impl Default for Settings {
@@ -58,6 +60,7 @@ impl Default for Settings {
             welcome_dismissed: false,
             auto_setup_done: false,
             auto_tracked_notice: false,
+            notify_analyzed: true,
         }
     }
 }

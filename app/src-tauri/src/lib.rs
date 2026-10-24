@@ -2,6 +2,7 @@ mod autostart;
 mod game;
 mod mcsr;
 mod network;
+mod notify;
 mod panel;
 mod placement;
 mod settings;
@@ -68,6 +69,7 @@ pub fn run() {
             panel::set_start_with_windows,
             panel::set_run_in_tray,
             panel::set_paused,
+            panel::set_notify_analyzed,
             panel::check_now,
             panel::detect_accounts,
             panel::show_player_matches,

@@ -18,6 +18,7 @@ type Settings = {
   paused: boolean;
   network: string | null;
   autoTrackedNotice: boolean;
+  notifyAnalyzed: boolean;
 };
 type Connection = { name: string; address: string };
 type SyncStatus = { state: string; label: string };
@@ -581,6 +582,13 @@ function Panel({ init }: { init: Init }) {
         <h1>Settings</h1>
       </header>
       <section className="card">
+        <div className="setting">
+          <span>
+            Notify when your match is analyzed{" "}
+            <InfoTip text="A Windows notification when a match the first player in your list just finished is analyzed. Click it to open the match." />
+          </span>
+          <Toggle label="Notify when your match is analyzed" checked={settings.notifyAnalyzed} onChange={(v) => set("set_notify_analyzed", { enabled: v })} />
+        </div>
         <div className="setting">
           <span>Start with Windows</span>
           <Toggle label="Start with Windows" checked={settings.startWithWindows} onChange={(v) => set("set_start_with_windows", { enabled: v })} />

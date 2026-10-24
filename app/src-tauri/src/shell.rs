@@ -414,6 +414,15 @@ pub fn set_panel(app: &AppHandle, open: bool) {
     let _ = app.emit_to(TITLEBAR_LABEL, "panel-open", open);
 }
 
+/// Show the window on a match page, opening the window if it was closed to the tray.
+pub fn show_match(app: &AppHandle, nickname: &str, match_id: i64) {
+    show_main(app);
+    if let (Some(site), Ok(url)) = (app.get_webview(SITE_LABEL), format!("{SITE_URL}/ranked/player/{nickname}/matches/{match_id}").parse()) {
+        let _ = site.navigate(url);
+    }
+    set_panel(app, false);
+}
+
 fn show_main(app: &AppHandle) {
     if let Some(w) = app.get_window("main") {
         let _ = w.show();

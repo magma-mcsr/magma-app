@@ -375,7 +375,8 @@ h1 {
   color: var(--accent);
 }
 
-.state.uploading {
+.state.uploading,
+.state.analyzing {
   color: #8cc4f5;
 }
 

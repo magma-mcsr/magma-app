@@ -15,8 +15,9 @@
 //! within seconds instead of waiting for the next round. The settings panel can ask for that
 //! check right away.
 //!
-//! The server never tells the app what to download. The only thing the app asks it is
-//! "do you already have this match?", which can only skip downloads.
+//! The server never tells the app what to download. The only thing sync asks it is "do you
+//! already have this match?", which can only skip downloads. (The App tab also asks which of
+//! the first player's recent matches are analyzed, only to show it.)
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};

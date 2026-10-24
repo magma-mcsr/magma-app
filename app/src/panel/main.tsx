@@ -28,7 +28,7 @@ type OwnMatch = {
   opponent: string | null;
   outcome: "won" | "lost" | "draw";
   forfeited: boolean;
-  state: "analyzed" | "uploading" | "waiting" | "no_replay";
+  state: "analyzed" | "analyzing" | "uploading" | "waiting" | "no_replay";
 };
 
 // Until magmamcsr.com has a privacy page, this explains what the app does and sends.
@@ -417,6 +417,7 @@ function SetupNotice({ me, onSettings }: { me: Tracked; onSettings: (s: Settings
 
 const STATE_LABEL: Record<OwnMatch["state"], string> = {
   analyzed: "Open analysis",
+  analyzing: "Analyzing",
   uploading: "Uploading",
   waiting: "Waiting",
   no_replay: "No replay",

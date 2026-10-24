@@ -269,7 +269,8 @@ pub struct OwnMatch {
     /// "won", "lost" or "draw" for the first player.
     outcome: &'static str,
     forfeited: bool,
-    /// "analyzed" (Magma has it), "uploading", "waiting" (not downloaded yet), "no_replay".
+    /// "analyzed" (the analysis is ready), "analyzing" (Magma has the replay, the analysis is not
+    /// ready yet), "uploading", "waiting" (not downloaded yet), "no_replay".
     state: &'static str,
 }
 
@@ -282,14 +283,18 @@ pub async fn recent_own(webview: Webview, client: State<'_, Client>, store: Stat
     let dir = crate::settings::app_dir(webview.app_handle()).map_err(|e| e.to_string())?;
     let (processed, pending) = (crate::sync::processed_ids(&dir), crate::sync::pending_ids(&dir));
     let uploader = crate::upload::Uploader::new();
+    let ids: Vec<i64> = matches.iter().map(|m| m.id).collect();
+    let analyzed = uploader.analyzed(&ids).await.unwrap_or_default();
     let mut out = Vec::new();
     for m in matches {
-        let state = if m.replay_exists == 0 {
+        let state = if analyzed.contains(&m.id) {
+            "analyzed"
+        } else if m.replay_exists == 0 {
             "no_replay"
         } else if pending.contains(&m.id) {
             "uploading"
         } else if matches!(uploader.has(m.id).await, crate::upload::Lookup::Stored) {
-            "analyzed"
+            "analyzing"
         } else if processed.contains(&m.id) {
             "uploading"
         } else {

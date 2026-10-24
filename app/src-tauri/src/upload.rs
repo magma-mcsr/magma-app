@@ -1,7 +1,9 @@
 //! Client for the Magma replay upload API (api.magmamcsr.com).
 //!
-//! Two endpoints:
+//! Endpoints:
 //! - `HEAD /api/mcsr-ranked/replays/{matchId}`: 200 when Magma already has the match
+//! - `GET /api/mcsr-ranked/replays/analysis?matchIds=...`: which of those matches are analyzed
+//!   (the App tab shows it next to your recent matches)
 //! - `POST /api/mcsr-ranked/replays`: the original .rrf bytes, unchanged
 
 use std::time::Duration;
@@ -51,6 +53,29 @@ impl Uploader {
 
     /// Whether Magma already has this match. Any error counts as "missing", so the
     /// download goes ahead as usual.
+    /// Which of these matches Magma has analyzed (not just received). One request for up to
+    /// 100 ids; None when the answer could not be read. The query is made unique so no cache
+    /// on the way returns an older answer.
+    pub async fn analyzed(&self, ids: &[i64]) -> Option<std::collections::HashSet<i64>> {
+        #[derive(serde::Deserialize)]
+        struct Row {
+            #[serde(rename = "matchId")]
+            match_id: i64,
+        }
+        #[derive(serde::Deserialize)]
+        struct Reply {
+            analyzed: Vec<Row>,
+        }
+        if ids.is_empty() {
+            return Some(Default::default());
+        }
+        let list: Vec<String> = ids.iter().map(|id| id.to_string()).collect();
+        let bust = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis());
+        let url = format!("{}/api/mcsr-ranked/replays/analysis?matchIds={}&_={bust}", self.base, list.join(","));
+        let reply: Reply = self.http.get().get(url).send().await.ok()?.error_for_status().ok()?.json().await.ok()?;
+        Some(reply.analyzed.into_iter().map(|r| r.match_id).collect())
+    }
+
     pub async fn has(&self, match_id: i64) -> Lookup {
         match self.http.get().head(format!("{}/api/mcsr-ranked/replays/{match_id}", self.base)).send().await {
             Ok(res) if res.status() == reqwest::StatusCode::OK => Lookup::Stored,

@@ -88,11 +88,33 @@ pub struct Engine {
     live: std::sync::Mutex<Live>,
     /// Check the first player's newest matches at the next chance, without waiting.
     own_now: AtomicBool,
+    /// The first player, and since when (unix seconds) this run of the app has been watching them.
+    /// Only matches that end after that notify: on a fresh install, or after the app was closed, the
+    /// matches of the last hour are synced quietly instead of each popping up as just analyzed.
+    watching: std::sync::Mutex<Option<(String, i64)>>,
 }
 
 impl Engine {
     pub fn new() -> Self {
-        Engine { wake: Notify::new(), live: std::sync::Mutex::new(Live::default()), own_now: AtomicBool::new(false) }
+        Engine {
+            wake: Notify::new(),
+            live: std::sync::Mutex::new(Live::default()),
+            own_now: AtomicBool::new(false),
+            watching: std::sync::Mutex::new(None),
+        }
+    }
+
+    /// Since when this run of the app has been watching this player (now, the first time it asks).
+    fn watching_since(&self, uuid: &str) -> i64 {
+        let mut w = self.watching.lock().expect("watching");
+        match w.as_ref() {
+            Some((u, since)) if u == uuid => *since,
+            _ => {
+                let since = now();
+                *w = Some((uuid.to_owned(), since));
+                since
+            }
+        }
     }
 
     /// Check the first player's newest matches now (the "Check now" button).
@@ -406,6 +428,7 @@ async fn check_own(
         return;
     }
     let Some(first) = settings.players.first() else { return };
+    let since = engine.watching_since(&first.uuid);
     let matches = match client.newest_matches(&first.uuid, OWN_CHECK_COUNT).await {
         Ok(m) => m,
         Err(e) => {
@@ -423,7 +446,7 @@ async fn check_own(
         if !fetch(app, client, uploader, m, journal, data_dir, pending_dir, upload_blocked_until).await {
             break;
         }
-        if settings.notify_analyzed {
+        if settings.notify_analyzed && m.date > since {
             notify_when_analyzed(app, first, m);
         }
     }

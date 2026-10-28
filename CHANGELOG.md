@@ -8,6 +8,8 @@ version after an update, and each GitHub release uses the same text.
 - **Starts with Windows** for new installs, in the tray, so no match is missed when you forget to
   open the app. The first-run notice says so; turn it off in Settings. Existing installs keep
   their setting.
+- Notifications only for matches you play while the app is running. Adding your name, or
+  starting the app, no longer pops up a notification for each match of the last hour.
 
 ## 0.2.1
 

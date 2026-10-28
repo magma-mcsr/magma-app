@@ -17,7 +17,19 @@ use mcsr::Client;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // One app at a time (registered first, as the plugin asks). A second launch hands over to the
+    // running one and exits: opened by hand, it shows the window; started with Windows
+    // (--background), nothing. Two would download and upload everything twice (0.2.0 after a
+    // restart: one from the startup entry, one reopened by Windows). Not in development builds,
+    // which would otherwise hand over to an installed app with the same identifier.
+    #[cfg(not(debug_assertions))]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        if !args.iter().any(|a| a == "--background") {
+            shell::show_main(app);
+        }
+    }));
+    builder
         .plugin(tauri_plugin_dialog::init())
         // No injected link handler: the website has no IPC access, and shell.rs decides
         // where new-window links open.

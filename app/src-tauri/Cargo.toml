@@ -29,6 +29,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 flate2 = "1"
 # Lists network connections for the "Network" setting.
 if-addrs = "0.13"
+tauri-plugin-single-instance = "2"
 
 
 [target.'cfg(windows)'.dependencies]

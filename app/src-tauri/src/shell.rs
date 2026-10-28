@@ -459,7 +459,7 @@ pub fn show_match(app: &AppHandle, nickname: &str, match_id: i64, season: Option
     set_panel(app, false);
 }
 
-fn show_main(app: &AppHandle) {
+pub(crate) fn show_main(app: &AppHandle) {
     if let Some(w) = app.get_window("main") {
         let _ = w.show();
         let _ = w.unminimize();

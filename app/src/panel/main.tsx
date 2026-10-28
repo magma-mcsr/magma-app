@@ -143,26 +143,20 @@ function AddPlayer({ onAdded, first }: { onAdded: (s: Settings) => void; first?:
   );
 }
 
-/** Lists longer than FOLD_OVER show only the first FOLD_TO players until unfolded. */
+/** Lists longer than FOLD_OVER show only the first FOLD_TO players; the full list opens in a dialog. */
 const FOLD_OVER = 7;
 const FOLD_TO = 5;
 
-function Players({ settings, setSettings }: { settings: Settings; setSettings: (s: Settings) => void }) {
-  const [order, setOrder] = useState(settings.players);
+
+/**
+ * Rows that can be reordered by dragging. `rows` is always the start of the full list (the first
+ * few, or all of it), so a row's index is also its index in the full list.
+ */
+function PlayerRows({ rows, onMove, onRemove }: { rows: Tracked[]; onMove: (from: number, to: number) => void; onRemove: (p: Tracked) => void }) {
   // Index being dragged, and the gap it would drop into (0 = before the first row).
   const [dragging, setDragging] = useState<number | null>(null);
   const [gap, setGap] = useState<number | null>(null);
   const dragFrom = useRef<number | null>(null);
-  // Long lists start folded to the top few; a player just added unfolds it so the new row is visible.
-  const [expanded, setExpanded] = useState(false);
-  const count = useRef(settings.players.length);
-  useEffect(() => {
-    setOrder(settings.players);
-    if (settings.players.length > count.current) setExpanded(true);
-    count.current = settings.players.length;
-  }, [settings.players]);
-  const folded = !expanded && order.length > FOLD_OVER;
-  const shown = folded ? order.slice(0, FOLD_TO) : order;
 
   function endDrag() {
     dragFrom.current = null;
@@ -184,67 +178,109 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
     if (from == null || to == null) return;
     // Removing the row first shifts every later gap up by one.
     const target = to > from ? to - 1 : to;
-    if (target === from) return;
-    const next = [...order];
-    const [moved] = next.splice(from, 1);
-    next.splice(target, 0, moved);
-    setOrder(next);
-    invoke<Settings>("reorder_players", { uuids: next.map((p) => p.uuid) }).then(setSettings);
+    if (target !== from) onMove(from, target);
   }
 
   // A gap right next to the dragged row would not move anything, so it shows no line.
   const showGap = (g: number) => gap === g && dragging != null && g !== dragging && g !== dragging + 1;
 
+  return rows.map((p, i) => (
+    <div
+      key={p.uuid}
+      className={[
+        "row",
+        dragging === i && "dragging",
+        showGap(i) && "drop-above",
+        i === rows.length - 1 && showGap(rows.length) && "drop-below",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      draggable
+      onDragStart={(e) => {
+        dragFrom.current = i;
+        setDragging(i);
+        // Chromium only starts a drag when it carries some data.
+        e.dataTransfer.setData("text/plain", p.uuid);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => onDragOver(e, i)}
+      onDrop={onDrop}
+      onDragEnd={endDrag}
+    >
+      <span className="handle" aria-hidden>
+        ⠿
+      </span>
+      <Avatar uuid={p.uuid} name={p.nickname} />
+      <span className="name">{p.nickname}</span>
+      <button className="remove" aria-label={`Stop syncing ${p.nickname}`} onClick={() => onRemove(p)}>
+        ✕
+      </button>
+    </div>
+  ));
+}
+
+function Players({ settings, setSettings }: { settings: Settings; setSettings: (s: Settings) => void }) {
+  const [order, setOrder] = useState(settings.players);
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => setOrder(settings.players), [settings.players]);
+  const folded = order.length > FOLD_OVER;
+  // Closes by itself when removing players makes the list short again.
+  useEffect(() => {
+    if (!folded) setShowAll(false);
+  }, [folded]);
+
+  function move(from: number, to: number) {
+    const next = [...order];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setOrder(next);
+    invoke<Settings>("reorder_players", { uuids: next.map((p) => p.uuid) }).then(setSettings);
+  }
+  const remove = (p: Tracked) => invoke<Settings>("remove_player", { uuid: p.uuid }).then(setSettings);
+  const hint = "When the download limit is reached, players higher in the list are downloaded first.";
+
   return (
     <section>
       <h2>
         Players
-        <InfoTip text="When the download limit is reached, players higher in the list are downloaded first." />
+        <InfoTip text={hint} />
       </h2>
-      {shown.map((p, i) => (
-        <div
-          key={p.uuid}
-          className={[
-            "row",
-            dragging === i && "dragging",
-            showGap(i) && "drop-above",
-            i === shown.length - 1 && showGap(shown.length) && "drop-below",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-          draggable
-          onDragStart={(e) => {
-            dragFrom.current = i;
-            setDragging(i);
-            // Chromium only starts a drag when it carries some data.
-            e.dataTransfer.setData("text/plain", p.uuid);
-            e.dataTransfer.effectAllowed = "move";
-          }}
-          onDragOver={(e) => onDragOver(e, i)}
-          onDrop={onDrop}
-          onDragEnd={endDrag}
-        >
-          <span className="handle" aria-hidden>
-            ⠿
-          </span>
-          <Avatar uuid={p.uuid} name={p.nickname} />
-          <span className="name">{p.nickname}</span>
-          <button
-            className="remove"
-            aria-label={`Stop syncing ${p.nickname}`}
-            onClick={() => invoke<Settings>("remove_player", { uuid: p.uuid }).then(setSettings)}
-          >
-            ✕
-          </button>
-        </div>
-      ))}
-      {order.length > FOLD_OVER && (
-        <button className="link quiet fold" onClick={() => setExpanded(!expanded)}>
-          {folded ? `Show all ${order.length} players` : "Show fewer"}
+      <PlayerRows rows={folded ? order.slice(0, FOLD_TO) : order} onMove={move} onRemove={remove} />
+      {folded && (
+        <button className="link quiet fold" onClick={() => setShowAll(true)}>
+          Show all {order.length} players
         </button>
       )}
       <AddPlayer onAdded={setSettings} first={order.length === 0} />
+      {showAll && (
+        <Dialog title={`Players (${order.length})`} onClose={() => setShowAll(false)}>
+          <p className="dialog-hint">{hint}</p>
+          <PlayerRows rows={order} onMove={move} onRemove={remove} />
+        </Dialog>
+      )}
     </section>
+  );
+}
+
+/** A centered window over the page. Esc, the close button or a click outside closes it. */
+function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="dialog" role="dialog" aria-modal="true" aria-label={title}>
+        <div className="dialog-head">
+          <span>{title}</span>
+          <button className="remove" aria-label="Close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <div className="dialog-body">{children}</div>
+      </div>
+    </div>
   );
 }
 

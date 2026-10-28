@@ -34,7 +34,10 @@ type OwnMatch = {
 };
 
 // Until magmamcsr.com has a privacy page, this explains what the app does and sends.
+/** For people checking what the app does in detail (About) */
 const LEARN_MORE = "https://github.com/magma-mcsr/magma-app#what-it-does";
+/** "Learn more" for everyone else: the app's page in Magma's docs (opens in the Website tab) */
+const APP_DOC = "https://magmamcsr.com/docs/app";
 /** Every setting on the Replays tab and under the gear, explained (opens in the Website tab) */
 const SETTINGS_DOC = "https://magmamcsr.com/docs/app/settings";
 // Both players are in the name, so the file is identifiable when several players are synced.
@@ -292,7 +295,7 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
 }
 
 const LEARN = (
-  <button className="link" onClick={() => invoke("open_link", { url: LEARN_MORE })}>
+  <button className="link" onClick={() => invoke("open_link", { url: APP_DOC })}>
     Learn more
   </button>
 );
@@ -578,7 +581,8 @@ function Panel({ init }: { init: Init }) {
     const b = listen<SyncStatus>("sync-status", ({ payload }) => setStatus(payload));
     const c = listen("setup-done", () => setPending(false));
     const d = listen<Page>("panel-page", ({ payload }) => setPage(payload));
-    invoke<{ page: Page }>("app_view_open")
+    // Asked after listening, so a page change in between is not missed
+    d.then(() => invoke<{ page: Page }>("app_view_open"))
       .then((v) => setPage(v.page))
       .catch(console.error);
     return () => {

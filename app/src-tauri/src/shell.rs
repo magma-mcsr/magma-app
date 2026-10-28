@@ -86,6 +86,10 @@ pub fn setup(app: &mut App) -> tauri::Result<()> {
 fn open_main(app: &AppHandle) -> tauri::Result<()> {
     let remembered = app.state::<WindowMemory>().0.lock().expect("window memory").clone();
     let site_url = remembered.url.as_deref().and_then(|u| u.parse().ok()).unwrap_or_else(|| SITE_URL.parse().expect("valid URL"));
+    // The window opens on Replays. Set before the title bar and panel load, so whenever they ask
+    // they hear Replays; the event sent when it is shown can arrive before they listen.
+    app.state::<PanelState>().0.store(true, Ordering::Relaxed);
+    *app.state::<PanelPage>().0.lock().expect("panel page") = "replays";
 
     let window = WindowBuilder::new(app, "main")
         .title("Magma MCSR")

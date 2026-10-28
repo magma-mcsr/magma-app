@@ -63,16 +63,19 @@ const showView = () => {
   siteTab.setAttribute("aria-selected", String(!open));
   settingsButton.setAttribute("aria-pressed", String(open && page === "settings"));
 };
-listen<boolean>("panel-open", ({ payload }) => {
-  open = payload;
-  showView();
-});
-listen<string>("panel-page", ({ payload }) => {
-  page = payload;
-  showView();
-});
-// The app may have opened on Replays before this page loaded and heard the event
-invoke<{ open: boolean; page: string }>("app_view_open")
+// Ask only once both listeners are in place: a change between asking and listening would
+// otherwise be missed (a fresh install opened on Replays while the title bar showed Website)
+Promise.all([
+  listen<boolean>("panel-open", ({ payload }) => {
+    open = payload;
+    showView();
+  }),
+  listen<string>("panel-page", ({ payload }) => {
+    page = payload;
+    showView();
+  }),
+])
+  .then(() => invoke<{ open: boolean; page: string }>("app_view_open"))
   .then((v) => {
     open = v.open;
     page = v.page;

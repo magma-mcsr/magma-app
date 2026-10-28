@@ -175,9 +175,9 @@ pub fn show_player_matches(webview: Webview, nickname: String, match_id: Option<
 pub struct SetupPending(pub std::sync::atomic::AtomicBool);
 
 /// First run, before anything is set: track the Minecraft name found on this computer right away,
-/// and tell the user in the App tab what that does, with "Change name" and "Turn off" (see the
+/// and tell the user in the Replays tab what that does, with "Change name" and "Turn off" (see the
 /// README). Runs once: removing or renaming the player later is respected. Without a name found,
-/// nothing is added and the App tab asks for one.
+/// nothing is added and the Replays tab asks for one.
 pub async fn auto_setup(app: AppHandle) {
     use std::sync::atomic::Ordering;
     let pending = &app.state::<SetupPending>().0;

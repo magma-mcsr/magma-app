@@ -44,9 +44,17 @@ pub enum Notice {
 pub struct NoticeState(Mutex<Option<Notice>>);
 pub(crate) const SITE_LABEL: &str = "site";
 
-/// Whether the settings panel is showing.
+/// Whether the app view (Replays, or Settings) is showing instead of the website.
 #[derive(Default)]
 pub struct PanelState(AtomicBool);
+
+/// Which page the app view shows: "replays" (the Replays tab) or "settings" (the gear, with About).
+pub struct PanelPage(Mutex<&'static str>);
+impl Default for PanelPage {
+    fn default() -> Self {
+        Self(Mutex::new("replays"))
+    }
+}
 
 /// The last file the website downloaded, shown in the title bar until it is opened.
 #[derive(Default)]
@@ -116,7 +124,7 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
         LogicalPosition::new(0.0, TITLEBAR_HEIGHT),
         LogicalSize::new(size.width, content_h),
     )?;
-    // The app's own view ("App" tab). Added last so it sits on top of the website, which stays
+    // The app's own view (the "Replays" tab). Added last so it sits on top of the website, which stays
     // loaded underneath while the app is shown.
     let panel = window.add_child(
         // Tauri intercepts drag events for file drops on Windows, which breaks HTML
@@ -168,11 +176,9 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
     }
     let _ = window.set_focus();
 
-    // First run: show the app view, which starts with setting up sync.
-    let settings = app.state::<Store>().get();
-    if settings.players.is_empty() && !settings.welcome_dismissed {
-        set_panel(app, true);
-    }
+    // The app opens on Replays: people install it to keep their replays, and the website is a
+    // second tab (on first run, Replays starts with setting up sync).
+    show_page(app, "replays");
     Ok(())
 }
 
@@ -414,6 +420,14 @@ pub fn set_panel(app: &AppHandle, open: bool) {
     let _ = app.emit_to(TITLEBAR_LABEL, "panel-open", open);
 }
 
+/// Show the app view on one of its pages, and tell the title bar and the app view which.
+pub fn show_page(app: &AppHandle, page: &'static str) {
+    *app.state::<PanelPage>().0.lock().expect("panel page") = page;
+    let _ = app.emit_to(PANEL_LABEL, "panel-page", page);
+    let _ = app.emit_to(TITLEBAR_LABEL, "panel-page", page);
+    set_panel(app, true);
+}
+
 /// Show the window on a match page, opening the window if it was closed to the tray.
 pub fn show_match(app: &AppHandle, nickname: &str, match_id: i64) {
     show_main(app);
@@ -455,7 +469,7 @@ fn build_tray(app: &App) -> tauri::Result<()> {
     Ok(())
 }
 
-// ---------- sync status (the App tab's dot in the title bar, and the app view) ----------
+// ---------- sync status (the Replays tab's dot in the title bar, and the app view) ----------
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -582,11 +596,11 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
     // While a notice covers the website: "Update required" keeps the website buttons and
     // the panel off (the title bar greys them out). "What's new" closes for the website
     // buttons, which would otherwise act unseen behind it, and makes room for the panel.
-    if matches!(action, "back" | "forward" | "reload" | "panel" | "tab-app") {
+    if matches!(action, "back" | "forward" | "reload" | "panel" | "tab-app" | "settings") {
         let notice = *app.state::<NoticeState>().0.lock().expect("notice");
         match notice {
             Some(Notice::Required) => return Ok(()),
-            Some(Notice::WhatsNew) if !matches!(action, "panel" | "tab-app") => {
+            Some(Notice::WhatsNew) if !matches!(action, "panel" | "tab-app" | "settings") => {
                 // Closing a webview from a synchronous command can deadlock; do it async.
                 let handle = app.clone();
                 tauri::async_runtime::spawn(async move { hide_notice(&handle) });
@@ -604,7 +618,11 @@ pub fn titlebar(webview: Webview, action: &str) -> Result<(), String> {
             Ok(())
         }
         "tab-app" => {
-            set_panel(app, true);
+            show_page(app, "replays");
+            Ok(())
+        }
+        "settings" => {
+            show_page(app, "settings");
             Ok(())
         }
         "tab-site" => {
@@ -711,13 +729,24 @@ pub fn update_status(webview: Webview) -> Result<crate::update::UpdateStatus, St
 }
 
 /// Current sync status, for the title bar and panel when they first load.
-/// Whether the app view is showing, for a title bar that loads after the app opened on it.
+/// Whether the app view is showing and on which page, for a title bar or app view that loads
+/// after the app opened on it.
+#[derive(serde::Serialize)]
+pub struct AppView {
+    open: bool,
+    page: &'static str,
+}
+
 #[tauri::command]
-pub fn app_view_open(webview: Webview) -> Result<bool, String> {
-    if webview.label() != TITLEBAR_LABEL {
+pub fn app_view_open(webview: Webview) -> Result<AppView, String> {
+    if webview.label() != TITLEBAR_LABEL && webview.label() != PANEL_LABEL {
         return Err("not allowed".into());
     }
-    Ok(webview.app_handle().state::<PanelState>().0.load(Ordering::Relaxed))
+    let app = webview.app_handle();
+    Ok(AppView {
+        open: app.state::<PanelState>().0.load(Ordering::Relaxed),
+        page: *app.state::<PanelPage>().0.lock().expect("panel page"),
+    })
 }
 
 #[tauri::command]

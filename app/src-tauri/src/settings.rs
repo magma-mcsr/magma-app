@@ -39,7 +39,7 @@ pub struct Settings {
     /// The name found on this computer was tracked automatically at first run. Done once: a
     /// player removed or renamed later is never added back.
     pub auto_setup_done: bool,
-    /// The App tab still shows what that automatic setup did, until "Got it".
+    /// The Replays tab still shows what that automatic setup did, until "Got it".
     pub auto_tracked_notice: bool,
     /// Windows notification when a match the first player just finished is analyzed.
     pub notify_analyzed: bool,

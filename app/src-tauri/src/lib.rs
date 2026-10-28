@@ -25,6 +25,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Client::new())
         .manage(shell::PanelState::default())
+        .manage(shell::PanelPage::default())
         .manage(shell::WindowMemory::default())
         .manage(shell::LastDownload::default())
         .manage(shell::NoticeState::default())

@@ -911,7 +911,7 @@ footer {
   font-weight: 600;
 }
 
-/* Replay sync state, the same colors as the App tab's dot in the title bar. */
+/* Replay sync state, the same colors as the Replays tab's dot in the title bar. */
 .nav-dot {
   width: 6px;
   height: 6px;

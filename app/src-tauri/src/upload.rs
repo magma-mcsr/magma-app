@@ -3,7 +3,7 @@
 //! Endpoints:
 //! - `HEAD /api/mcsr-ranked/replays/{matchId}`: 200 when Magma already has the match
 //! - `GET /api/mcsr-ranked/replays/analysis?matchIds=...`: which of those matches are analyzed
-//!   (the App tab shows it next to your recent matches)
+//!   (the Replays tab shows it next to your recent matches)
 //! - `POST /api/mcsr-ranked/replays`: the original .rrf bytes, unchanged
 
 use std::time::Duration;

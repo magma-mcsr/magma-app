@@ -11,10 +11,11 @@
         <span>Magma MCSR</span>
       </div>
       <div class="tabs" role="tablist" aria-label="View">
-        <button class="tab" id="tab-site" data-action="tab-site" role="tab" aria-selected="true">Website</button>
-        <button class="tab" id="tab-app" data-action="tab-app" role="tab" aria-selected="false">
-          <span>App</span><span class="dot"></span>
+        <!-- Replays first: it is what the app is for; the website is the second tab -->
+        <button class="tab" id="tab-app" data-action="tab-app" role="tab" aria-selected="true">
+          <span>Replays</span><span class="dot"></span>
         </button>
+        <button class="tab" id="tab-site" data-action="tab-site" role="tab" aria-selected="false">Website</button>
       </div>
       <div class="nav">
         <button class="icon" data-action="back" aria-label="Back">
@@ -33,6 +34,14 @@
         <span class="dot"></span><span class="download-label" id="download-label">Downloading</span><span class="download-name" id="download-name"></span>
       </button>
       <button class="update" id="update" data-action="update" hidden>Update</button>
+      <!-- App settings and About. A gear stands alone as "settings" everywhere -->
+      <button class="icon settings" id="settings" data-action="settings" aria-label="Settings" title="Settings" aria-pressed="false">
+        <svg viewBox="0 0 16 16">
+          <circle cx="8" cy="8" r="2" />
+          <circle cx="8" cy="8" r="4.4" />
+          <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1" />
+        </svg>
+      </button>
       <div class="window">
         <button class="win" data-action="minimize" aria-label="Minimize">
           <span class="box"><svg viewBox="0 0 16 16"><path d="M3.5 8h9" /></svg></span>

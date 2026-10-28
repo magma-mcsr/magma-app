@@ -20,7 +20,9 @@ are still available and sends them to Magma for analysis.
 
 ## What it does
 
-- Shows magmamcsr.com in its own window. To the website it looks like Microsoft Edge, with
+- Opens on its **Replays** tab: your recent matches, the players it syncs and the sync options.
+  The gear in the title bar opens the app settings.
+- Shows magmamcsr.com in its second tab, **Website**. To the website it looks like Microsoft Edge, with
   `MagmaApp/<version>` added to the user agent so Magma can tell visits from the app apart.
 - Links to other websites open in your default browser, and `mailto:` links in your mail app.
   Files you download from the website are saved to your Downloads folder, as in a browser.
@@ -30,7 +32,7 @@ are still available and sends them to Magma for analysis.
   order you list them: if there are more than it can download, the top of your list comes first.
   The first player in your list (usually you) is also checked every 15 seconds for matches that
   ended in the last hour, so a match just played is uploaded within moments; "Check now" in the
-  App tab does that check right away. These checks count toward the API limit below.
+  Replays tab does that check right away. These checks count toward the API limit below.
 - When one of those just-played matches is analyzed, it shows a Windows notification (you can
   turn this off in Settings). Clicking it opens the match. Other players' matches never notify.
 - Stays within the official limits however many players you add: replay downloads start at
@@ -52,7 +54,7 @@ are still available and sends them to Magma for analysis.
   first part of each instance's newest Minecraft logs (`logs/latest.log`, then a few older
   `logs/*.log.gz`), where Minecraft writes "Setting user: <name>" when it starts. The game does
   not need to be running. If it finds a name with a Ranked profile, it starts tracking that name
-  right away and the App tab says so, explains what happens to the replays, and offers "Change
+  right away and the Replays tab says so, explains what happens to the replays, and offers "Change
   name" and "Turn off". This happens once: a name you remove or change is never added back.
   Without a name found, nothing is tracked until you type one.
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**
@@ -78,7 +80,7 @@ are still available and sends them to Magma for analysis.
   which hold login tokens.
 - It does not ask for your Minecraft, Microsoft or MCSR login.
 - The website shown in the window cannot use any of the app's native features (your files,
-  settings, replay sync). Only the app's own title bar and App tab can.
+  settings, replay sync). Only the app's own title bar, Replays tab and settings can.
 - A link on the website can never open files or programs on your computer: only web links
   and `mailto:` links are passed on to the system.
 

@@ -73,6 +73,16 @@ button {
   stroke-linejoin: round;
 }
 
+/* The gear stays lit while Settings is the view, like a selected tab */
+.icon.settings {
+  margin-right: 6px;
+}
+
+.icon.settings[aria-pressed="true"] {
+  background: #262626;
+  color: #fafafa;
+}
+
 .section {
   padding-left: 10px;
   color: #a1a1a1;
@@ -199,7 +209,7 @@ button {
   display: none;
 }
 
-/* Replay sync state on the App tab. */
+/* Replay sync state on the Replays tab. */
 .dot {
   width: 6px;
   height: 6px;

@@ -1,4 +1,4 @@
-// The app's own view (the "App" tab): first-run welcome, then your recent matches, the players
+// The app's own view (the "Replays" tab): first-run welcome, then your recent matches, the players
 // to sync and the settings. Runs as its own local webview over the website.
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -549,8 +549,8 @@ function RecentMatches({ me }: { me: Tracked }) {
 }
 
 type Page = "replays" | "settings" | "about";
-const PAGES: { id: Page; label: string }[] = [
-  { id: "replays", label: "Replays" },
+/** The gear in the title bar opens these two; Replays is its own tab and has no side menu. */
+const SETTINGS_PAGES: { id: Page; label: string }[] = [
   { id: "settings", label: "Settings" },
   { id: "about", label: "About" },
 ];
@@ -559,6 +559,7 @@ const REPO = "https://github.com/magma-mcsr/magma-app";
 function Panel({ init }: { init: Init }) {
   const [settings, setSettings] = useState(init.settings);
   const [status, setStatus] = useState(init.status);
+  // The title bar picks Replays or Settings (the Replays tab, or the gear); About is a page under Settings
   const [page, setPage] = useState<Page>("replays");
   // The first-run setup may still be looking for this computer's Minecraft name
   const [pending, setPending] = useState(init.setupPending);
@@ -574,10 +575,15 @@ function Panel({ init }: { init: Init }) {
     const a = listen<Settings>("settings-changed", ({ payload }) => setSettings(payload));
     const b = listen<SyncStatus>("sync-status", ({ payload }) => setStatus(payload));
     const c = listen("setup-done", () => setPending(false));
+    const d = listen<Page>("panel-page", ({ payload }) => setPage(payload));
+    invoke<{ page: Page }>("app_view_open")
+      .then((v) => setPage(v.page))
+      .catch(console.error);
     return () => {
       a.then((f) => f());
       b.then((f) => f());
       c.then((f) => f());
+      d.then((f) => f());
     };
   }, []);
 
@@ -703,15 +709,15 @@ function Panel({ init }: { init: Init }) {
     </>
   );
 
+  const inSettings = page !== "replays";
   return (
-    <div className={empty ? "panel" : "panel with-nav"}>
-      {!empty && (
-        // Three plain text entries: short words read faster than icons here.
-        <nav className="sidebar" aria-label="App">
-          {PAGES.map((p) => (
+    <div className={inSettings ? "panel with-nav" : "panel"}>
+      {inSettings && (
+        // Two plain text entries: short words read faster than icons here.
+        <nav className="sidebar" aria-label="Settings">
+          {SETTINGS_PAGES.map((p) => (
             <button key={p.id} className="nav-item" aria-current={page === p.id ? "page" : undefined} onClick={() => setPage(p.id)}>
               <span>{p.label}</span>
-              {p.id === "replays" && <span className={`nav-dot ${status.state}`} title={status.label} />}
             </button>
           ))}
         </nav>
@@ -719,16 +725,16 @@ function Panel({ init }: { init: Init }) {
       <div className="body-row">
         <div className="body" ref={body}>
           <div className="page">
-            {empty && pending ? (
+            {page === "settings" ? (
+              appSettings
+            ) : page === "about" ? (
+              about
+            ) : empty && pending ? (
               <p className="muted looking">Looking for your Minecraft account on this computer…</p>
             ) : empty ? (
               <Welcome onSettings={setSettings} />
-            ) : page === "replays" ? (
-              replays
-            ) : page === "settings" ? (
-              appSettings
             ) : (
-              about
+              replays
             )}
           </div>
         </div>

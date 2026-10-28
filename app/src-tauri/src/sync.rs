@@ -16,7 +16,7 @@
 //! check right away.
 //!
 //! The server never tells the app what to download. The only thing sync asks it is "do you
-//! already have this match?", which can only skip downloads. (The App tab also asks which of
+//! already have this match?", which can only skip downloads. (The Replays tab also asks which of
 //! the first player's recent matches are analyzed, only to show it.)
 
 use std::collections::{BTreeMap, HashMap};
@@ -71,7 +71,7 @@ pub enum Phase {
     Downloading,
 }
 
-/// What the engine is doing right now (drives the App tab's status in the title bar).
+/// What the engine is doing right now (drives the Replays tab's status in the title bar).
 #[derive(Clone, Default)]
 pub struct Live {
     pub phase: Phase,
@@ -444,7 +444,7 @@ fn notify_when_analyzed(app: &AppHandle, me: &TrackedPlayer, m: &MatchSummary) {
         for _ in 0..ANALYZED_TRIES {
             tokio::time::sleep(ANALYZED_POLL).await;
             if uploader.analyzed(&[id]).await.is_some_and(|done| done.contains(&id)) {
-                // The App tab's list updates at the same moment as the notification
+                // The Replays tab's list updates at the same moment as the notification
                 let _ = app.emit_to(crate::shell::PANEL_LABEL, "own-analyzed", id);
                 crate::notify::analysis_ready(&app, &nickname, id, &summary);
                 return;

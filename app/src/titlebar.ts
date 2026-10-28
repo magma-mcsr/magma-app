@@ -39,8 +39,9 @@ function sectionFor(path: string): string {
   return SECTIONS[first] ?? first.charAt(0).toUpperCase() + first.slice(1);
 }
 
-// Two views, like browser tabs: the website, and the app's own page. The App tab's dot shows
-// the replay sync state; hovering it says what that state is.
+// Two views, like browser tabs: Replays (the app's own page) and the website. The gear opens
+// the app view on Settings. The Replays tab's dot shows the replay sync state; hovering it says
+// what that state is.
 type SyncStatus = { state: string; label: string };
 const bar = document.getElementById("bar")!;
 const siteTab = document.getElementById("tab-site")!;
@@ -48,19 +49,36 @@ const appTab = document.getElementById("tab-app")!;
 const showStatus = (s: SyncStatus) => {
   appTab.dataset.state = s.state;
   appTab.title = s.label;
-  appTab.setAttribute("aria-label", `App: ${s.label}`);
+  appTab.setAttribute("aria-label", `Replays: ${s.label}`);
 };
 invoke<SyncStatus>("sync_status").then(showStatus).catch(console.error);
 listen<SyncStatus>("sync-status", ({ payload }) => showStatus(payload));
 // The website's back, forward and reload only show while the website is the view.
-const showView = (app: boolean) => {
-  bar.classList.toggle("app-active", app);
-  appTab.setAttribute("aria-selected", String(app));
-  siteTab.setAttribute("aria-selected", String(!app));
+const settingsButton = document.getElementById("settings")!;
+let open = false;
+let page = "replays";
+const showView = () => {
+  bar.classList.toggle("app-active", open);
+  appTab.setAttribute("aria-selected", String(open && page === "replays"));
+  siteTab.setAttribute("aria-selected", String(!open));
+  settingsButton.setAttribute("aria-pressed", String(open && page === "settings"));
 };
-listen<boolean>("panel-open", ({ payload }) => showView(payload));
-// The app may have opened on the App tab before this page loaded and heard the event
-invoke<boolean>("app_view_open").then(showView).catch(console.error);
+listen<boolean>("panel-open", ({ payload }) => {
+  open = payload;
+  showView();
+});
+listen<string>("panel-page", ({ payload }) => {
+  page = payload;
+  showView();
+});
+// The app may have opened on Replays before this page loaded and heard the event
+invoke<{ open: boolean; page: string }>("app_view_open")
+  .then((v) => {
+    open = v.open;
+    page = v.page;
+    showView();
+  })
+  .catch(console.error);
 
 // A downloaded update shows an "Update" button; clicking it restarts into the new version.
 type UpdateStatus = { ready: string | null };

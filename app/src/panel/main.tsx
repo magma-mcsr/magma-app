@@ -143,13 +143,26 @@ function AddPlayer({ onAdded, first }: { onAdded: (s: Settings) => void; first?:
   );
 }
 
+/** Lists longer than FOLD_OVER show only the first FOLD_TO players until unfolded. */
+const FOLD_OVER = 7;
+const FOLD_TO = 5;
+
 function Players({ settings, setSettings }: { settings: Settings; setSettings: (s: Settings) => void }) {
   const [order, setOrder] = useState(settings.players);
   // Index being dragged, and the gap it would drop into (0 = before the first row).
   const [dragging, setDragging] = useState<number | null>(null);
   const [gap, setGap] = useState<number | null>(null);
   const dragFrom = useRef<number | null>(null);
-  useEffect(() => setOrder(settings.players), [settings.players]);
+  // Long lists start folded to the top few; a player just added unfolds it so the new row is visible.
+  const [expanded, setExpanded] = useState(false);
+  const count = useRef(settings.players.length);
+  useEffect(() => {
+    setOrder(settings.players);
+    if (settings.players.length > count.current) setExpanded(true);
+    count.current = settings.players.length;
+  }, [settings.players]);
+  const folded = !expanded && order.length > FOLD_OVER;
+  const shown = folded ? order.slice(0, FOLD_TO) : order;
 
   function endDrag() {
     dragFrom.current = null;
@@ -188,14 +201,14 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
         Players
         <InfoTip text="When the download limit is reached, players higher in the list are downloaded first." />
       </h2>
-      {order.map((p, i) => (
+      {shown.map((p, i) => (
         <div
           key={p.uuid}
           className={[
             "row",
             dragging === i && "dragging",
             showGap(i) && "drop-above",
-            i === order.length - 1 && showGap(order.length) && "drop-below",
+            i === shown.length - 1 && showGap(shown.length) && "drop-below",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -225,6 +238,11 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
           </button>
         </div>
       ))}
+      {order.length > FOLD_OVER && (
+        <button className="link quiet fold" onClick={() => setExpanded(!expanded)}>
+          {folded ? `Show all ${order.length} players` : "Show fewer"}
+        </button>
+      )}
       <AddPlayer onAdded={setSettings} first={order.length === 0} />
     </section>
   );

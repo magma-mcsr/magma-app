@@ -537,6 +537,12 @@ h2 {
   background: #262626;
 }
 
+/* "Show all N players" under a folded list */
+.link.quiet.fold {
+  margin: 6px 0 4px 26px;
+  font-size: 13px;
+}
+
 .handle {
   width: 12px;
   color: var(--faint);

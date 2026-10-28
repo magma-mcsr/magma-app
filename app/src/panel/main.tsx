@@ -405,7 +405,7 @@ function Welcome({ onSettings }: { onSettings: (s: Settings) => void }) {
         </div>
         <p className="hint">
           {isFound ? "Found in this computer's Minecraft logs. " : found ? "" : "Type your Minecraft name. "}
-          Analyses are public. {LEARN}
+          Analyses are public. The app starts with Windows (you can turn this off in Settings). {LEARN}
         </p>
         {error && <div className="error">{error}</div>}
       </form>
@@ -449,6 +449,7 @@ function SetupNotice({ me, onSettings }: { me: Tracked; onSettings: (s: Settings
         <li>While the app runs, it checks for your new Ranked matches.</li>
         <li>It downloads each replay from MCSR Ranked's public replay server and uploads it to Magma.</li>
         <li>Magma analyzes it, and the analysis is on your Matches page about a minute after the match. Analyses are public.</li>
+        <li>It starts with Windows, in the tray, so no match is missed. You can turn this off in Settings (the gear).</li>
       </ul>
       {changing ? (
         <form className="you-row" onSubmit={change}>

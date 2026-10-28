@@ -3,6 +3,12 @@
 What changed in each version of the Magma MCSR app. The app shows the section for its own
 version after an update, and each GitHub release uses the same text.
 
+## 0.2.2
+
+- **Starts with Windows** for new installs, in the tray, so no match is missed when you forget to
+  open the app. The first-run notice says so; turn it off in Settings. Existing installs keep
+  their setting.
+
 ## 0.2.1
 
 - **One app at a time**: after a restart two copies of the app could run, downloading and uploading

@@ -52,7 +52,9 @@ impl Default for Settings {
             me: None,
             keep_copy: false,
             copy_folder: None,
-            start_with_windows: false,
+            // On: replays are only kept for 7 days, so an app nobody remembers to open misses matches.
+            // The first-run notice and welcome say so, and point to the setting.
+            start_with_windows: true,
             run_in_tray: true,
             paused: false,
             network: None,

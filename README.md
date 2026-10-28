@@ -22,6 +22,8 @@ are still available and sends them to Magma for analysis.
 
 - Opens on its **Replays** tab: your recent matches, the players it syncs and the sync options.
   The gear in the title bar opens the app settings.
+- Starts with Windows by default, in the tray, so replays keep being saved without opening it;
+  the first-run notice says so. Turn it off in Settings.
 - Shows magmamcsr.com in its second tab, **Website**. To the website it looks like Microsoft Edge, with
   `MagmaApp/<version>` added to the user agent so Magma can tell visits from the app apart.
 - Links to other websites open in your default browser, and `mailto:` links in your mail app.

@@ -60,6 +60,11 @@ are still available and sends them to Magma for analysis.
   name" and "Turn off". This happens once: a name you remove or change is never added back.
   Without a name found, nothing is tracked until you type one.
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**
+- Every 6 hours, unless "Share sync statistics" is off in Settings, sends Magma
+  (`api.magmamcsr.com`) a report: a random install ID made on first run and kept in the settings
+  file, the app version, whether sync is on, and the UUIDs of the players in your list. It contains
+  nothing about your computer or accounts. The server stores a hashed IP with it, as it does for
+  uploads.
 - Checks this repository's GitHub Releases for updates. A new version is installed when the app
   starts with Windows, or when you click "Update" in the title bar; it never closes on you
   while you are using it. An update is only installed if it is signed with the Magma update
@@ -91,7 +96,7 @@ are still available and sends them to Magma for analysis.
 | What | File |
 |---|---|
 | What gets downloaded, and when | `app/src-tauri/src/sync.rs` |
-| What gets sent to Magma | `app/src-tauri/src/upload.rs` |
+| What gets sent to Magma | `app/src-tauri/src/upload.rs`, `app/src-tauri/src/report.rs` |
 | Requests to the official API and replay CDN | `app/src-tauri/src/mcsr.rs` |
 | Which pages may call native features | `app/src-tauri/capabilities/default.json` |
 | Window, title bar and tray; where links and downloads go | `app/src-tauri/src/shell.rs` |

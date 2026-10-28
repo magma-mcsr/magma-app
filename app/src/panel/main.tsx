@@ -20,6 +20,7 @@ type Settings = {
   network: string | null;
   autoTrackedNotice: boolean;
   notifyAnalyzed: boolean;
+  shareStats: boolean;
 };
 type Connection = { name: string; address: string };
 type SyncStatus = { state: string; label: string };
@@ -683,6 +684,13 @@ function Panel({ init }: { init: Init }) {
             <InfoTip text="Closing the window keeps replay sync running in the background. Quit from the tray icon." />
           </span>
           <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
+        </div>
+        <div className="setting">
+          <span>
+            Share sync statistics{" "}
+            <InfoTip text="Every few hours, the app tells Magma it is running: a random ID for this install, the app version, whether sync is on, and the players in your list. Nothing else, and never your Minecraft account. Magma uses it to see how many apps are syncing and which players are covered." />
+          </span>
+          <Toggle label="Share sync statistics" checked={settings.shareStats} onChange={(v) => set("set_share_stats", { enabled: v })} />
         </div>
       </section>
       <p className="page-foot">{link(SETTINGS_DOC, "All settings explained")}</p>

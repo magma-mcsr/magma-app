@@ -11,6 +11,11 @@ version after an update, and each GitHub release uses the same text.
 - Notifications only for matches you play while the app is running. Adding your name, or
   starting the app, no longer pops up a notification for each match of the last hour.
 
+- **Share sync statistics** (Settings, on by default): every 6 hours the app tells Magma it is
+  running, with a random ID for this install, the app version, whether sync is on and the players
+  in your list. Magma uses it to see how many apps are syncing and which players are covered. Turn
+  it off and nothing is sent.
+
 ## 0.2.1
 
 - **One app at a time**: after a restart two copies of the app could run, downloading and uploading

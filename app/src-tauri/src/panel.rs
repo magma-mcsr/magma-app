@@ -407,6 +407,12 @@ pub fn set_notify_analyzed(webview: Webview, store: State<'_, Store>, enabled: b
 }
 
 #[tauri::command]
+pub fn set_share_stats(webview: Webview, store: State<'_, Store>, enabled: bool) -> Result<Settings, String> {
+    guard(&webview)?;
+    apply(webview.app_handle(), &store, |s| s.share_stats = enabled)
+}
+
+#[tauri::command]
 pub fn set_paused(webview: Webview, store: State<'_, Store>, paused: bool) -> Result<Settings, String> {
     guard(&webview)?;
     apply(webview.app_handle(), &store, |s| s.paused = paused)

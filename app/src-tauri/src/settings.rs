@@ -43,6 +43,10 @@ pub struct Settings {
     pub auto_tracked_notice: bool,
     /// Windows notification when a match the first player just finished is analyzed.
     pub notify_analyzed: bool,
+    /// "Share sync statistics": the status report every 6 hours (see report.rs).
+    pub share_stats: bool,
+    /// Random ID for this install, made on first run, sent only in that report.
+    pub install_id: Option<String>,
 }
 
 impl Default for Settings {
@@ -63,6 +67,8 @@ impl Default for Settings {
             auto_setup_done: false,
             auto_tracked_notice: false,
             notify_analyzed: true,
+            share_stats: true,
+            install_id: None,
         }
     }
 }
@@ -84,7 +90,13 @@ impl Store {
                 settings.players.insert(0, me);
             }
         }
-        Store { path, settings: Mutex::new(settings) }
+        let store = Store { path, settings: Mutex::new(settings) };
+        if store.get().install_id.is_none() {
+            if let Some(id) = crate::report::new_install_id() {
+                let _ = store.update(|s| s.install_id = Some(id));
+            }
+        }
+        store
     }
 
     pub fn get(&self) -> Settings {

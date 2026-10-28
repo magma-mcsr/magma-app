@@ -4,6 +4,7 @@ mod mcsr;
 mod network;
 mod notify;
 mod panel;
+mod report;
 mod placement;
 mod settings;
 mod shell;
@@ -60,6 +61,7 @@ pub fn run() {
             tauri::async_runtime::spawn(panel::auto_setup(app.handle().clone()));
             tauri::async_runtime::spawn(sync::run(app.handle().clone()));
             tauri::async_runtime::spawn(update::run(app.handle().clone()));
+            tauri::async_runtime::spawn(report::run(app.handle().clone()));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -83,6 +85,7 @@ pub fn run() {
             panel::set_run_in_tray,
             panel::set_paused,
             panel::set_notify_analyzed,
+            panel::set_share_stats,
             panel::check_now,
             panel::detect_accounts,
             panel::show_player_matches,

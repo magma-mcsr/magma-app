@@ -5,17 +5,22 @@ version after an update, and each GitHub release uses the same text.
 
 ## 0.2.0
 
-- **The app has its own tab**: the title bar switches between **Website** and **App**, like browser
-  tabs. The App tab fills the window and replaces the settings panel: your recent matches and
-  whether each one is analyzed yet (click one to open it on the website), the players to sync,
-  and the settings. The website stays loaded while you are in the App tab.
+- **A Replays tab**: the app opens on its own **Replays** tab, with the website as the second tab,
+  like browser tabs. Replays shows your recent matches and whether each one is analyzed yet (click
+  one to open it on the website), the players to sync and the sync options. The website stays
+  loaded while you are in Replays. App settings and About are behind the gear in the title bar.
 - **Notified when your match is analyzed**: a Windows notification when a match you just played
   is analyzed; click it to open the match. Only your own new matches, and it can be turned off
   in Settings.
 - **Ready on first launch**: when the app finds your Minecraft name in this computer's Minecraft
   logs (Prism Launcher, MultiMC, Modrinth, CurseForge and the official launcher), it starts
-  tracking your matches right away. The App tab says so, explains what happens, and lets you
+  tracking your matches right away. The Replays tab says so, explains what happens, and lets you
   change the name or turn it off. Without a name found, it asks for yours.
+- **Long player lists stay short**: past seven players, the Replays tab shows the first five and
+  "Show all" opens the whole list, where you can still reorder and remove players.
+- **Help where you need it**: "All settings explained" under the settings, and "Learn more", open
+  the app's pages in Magma's docs.
+- Matches open on Magma right away from "Open analysis" and from notifications.
 - The app uses the same font as the website (Inter).
 - The app's pages and update notices use the same slim scrollbar as the website.
 - **Faster sync, safely within the limits**
@@ -24,14 +29,14 @@ version after an update, and each GitHub release uses the same text.
   - If downloads get blocked anyway, for example while you watch replays in game, the app slows
     down for an hour by itself.
   - Following many players can no longer run into the MCSR Ranked API rate limit.
-- **Long player lists**: when there are more replays than can be downloaded, the players at the
+- **Players at the top first**: when there are more replays than can be downloaded, the players at the
   top of your list always come first, and new matches of top players are found within about
   half an hour even during a big backlog.
 - **Your new matches right away**: the first player in your list (usually you) is checked every
   15 seconds, so a match you just finished is analyzed within about a minute instead of waiting for
-  the next round. "Check now" in the App tab looks immediately.
+  the next round. "Check now" in the Replays tab looks immediately.
 - **Choose a network**: on a computer with more than one connection (for example wired and
-  Wi-Fi), pick which one the app uses in Settings → Network.
+  Wi-Fi), pick which one the app uses under Network in the Replays tab.
 - **Watch your replays in game**: when you turn on "Keep a copy of replays", copies now go to
   your MCSR Ranked replay folder by default, so they show up under My Replays. You can still
   pick another folder.

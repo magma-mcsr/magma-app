@@ -49,16 +49,23 @@ function inline(text: string): Node[] {
   });
 }
 
-/** Two-level bullet list ("- item", "  - sub item"). */
+/**
+ * Two-level bullet list ("- item", "  - sub item"). An item can wrap onto more lines (indented
+ * continuation lines in CHANGELOG.md); those are joined back into it.
+ */
 function renderList(lines: string[]): HTMLElement {
-  const list = document.createElement("ul");
-  let last: HTMLLIElement | null = null;
+  const items: { sub: boolean; text: string }[] = [];
   for (const line of lines) {
     const m = line.match(/^(\s*)- (.*)$/);
-    if (!m) continue;
+    if (m) items.push({ sub: m[1].length > 0, text: m[2] });
+    else if (items.length) items[items.length - 1].text += " " + line.trim();
+  }
+  const list = document.createElement("ul");
+  let last: HTMLLIElement | null = null;
+  for (const item of items) {
     const li = document.createElement("li");
-    li.append(...inline(m[2]));
-    if (m[1].length > 0 && last) {
+    li.append(...inline(item.text));
+    if (item.sub && last) {
       let sub = last.querySelector("ul");
       if (!sub) last.append((sub = document.createElement("ul")));
       sub.append(li);

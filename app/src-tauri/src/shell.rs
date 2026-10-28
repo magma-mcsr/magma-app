@@ -86,9 +86,18 @@ pub fn setup(app: &mut App) -> tauri::Result<()> {
 fn open_main(app: &AppHandle) -> tauri::Result<()> {
     let remembered = app.state::<WindowMemory>().0.lock().expect("window memory").clone();
     let site_url = remembered.url.as_deref().and_then(|u| u.parse().ok()).unwrap_or_else(|| SITE_URL.parse().expect("valid URL"));
-    // The window opens on Replays. Set before the title bar and panel load, so whenever they ask
-    // they hear Replays; the event sent when it is shown can arrive before they listen.
-    app.state::<PanelState>().0.store(true, Ordering::Relaxed);
+    // A notice to show over the website first ("Update required", or "What's new" once after an
+    // update). Without one the window opens on Replays. Decided before the title bar and panel
+    // load, so whenever they ask they hear the right tab; the event sent when it is shown can
+    // arrive before they listen.
+    let notice = if app.state::<Engine>().live().update_required {
+        Some(Notice::Required)
+    } else if app.state::<crate::update::Updates>().take_updated() {
+        Some(Notice::WhatsNew)
+    } else {
+        None
+    };
+    app.state::<PanelState>().0.store(notice.is_none(), Ordering::Relaxed);
     *app.state::<PanelPage>().0.lock().expect("panel page") = "replays";
 
     let window = WindowBuilder::new(app, "main")
@@ -173,16 +182,16 @@ fn open_main(app: &AppHandle) -> tauri::Result<()> {
 
     watch_location(app.clone(), site);
     window.show()?;
-    if app.state::<Engine>().live().update_required {
-        show_notice(app, Notice::Required);
-    } else if app.state::<crate::update::Updates>().take_updated() {
-        show_notice(app, Notice::WhatsNew);
-    }
     let _ = window.set_focus();
 
     // The app opens on Replays: people install it to keep their replays, and the website is a
-    // second tab (on first run, Replays starts with setting up sync).
-    show_page(app, "replays");
+    // second tab (on first run, Replays starts with setting up sync). A notice comes first: shown
+    // over the website, it would be hidden behind Replays (0.2.0 opened on Replays after an update
+    // with "What's new" out of sight).
+    match notice {
+        Some(n) => show_notice(app, n),
+        None => show_page(app, "replays"),
+    }
     Ok(())
 }
 
@@ -505,6 +514,9 @@ pub fn status_for(s: &Settings, live: &Live) -> SyncStatus {
     }
     match live.phase {
         Phase::Checking => status("busy", "Checking for new matches".into()),
+        // The 15-second check of the first player's new matches downloads outside a counted round
+        // (0.2.0 showed "Downloading 1 of 0")
+        Phase::Downloading if live.done >= live.total => status("busy", "Downloading your new match".into()),
         Phase::Downloading if live.expiring > 0 => {
             status("warning", format!("Downloading {} of {} · {} expiring", live.done + 1, live.total, live.expiring))
         }

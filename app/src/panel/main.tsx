@@ -1,6 +1,7 @@
 // The app's own view (the "App" tab): first-run welcome, then your recent matches, the players
 // to sync and the settings. Runs as its own local webview over the website.
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import ReactDOM from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -262,14 +263,17 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
   );
 }
 
-/** A centered window over the page. Esc, the close button or a click outside closes it. */
+/**
+ * A centered window over the page. Esc, the close button or a click outside closes it. Rendered into
+ * <body>: the cards blur what is behind them, which would make a fixed position relative to the card.
+ */
 function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  return (
+  return createPortal(
     <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="dialog" role="dialog" aria-modal="true" aria-label={title}>
         <div className="dialog-head">
@@ -280,7 +284,8 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
         </div>
         <div className="dialog-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

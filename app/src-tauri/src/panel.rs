@@ -439,15 +439,22 @@ pub fn close_panel(webview: Webview) -> Result<(), String> {
     Ok(())
 }
 
-/// Open a link in the system browser. Only Magma and the project's own pages are allowed.
+/// Open a link. Magma pages open in the Website tab, like any other Magma page in the app;
+/// the project's GitHub pages open in the system browser. Nothing else is allowed.
 #[tauri::command]
 pub fn open_link(webview: Webview, url: String) -> Result<(), String> {
     guard(&webview)?;
-    let allowed = ["https://magmamcsr.com/", "https://github.com/"];
-    if !allowed.iter().any(|p| url.starts_with(p)) {
+    let app = webview.app_handle();
+    if url.starts_with("https://magmamcsr.com/") {
+        let site = app.get_webview(shell::SITE_LABEL).ok_or("site webview missing")?;
+        site.navigate(url.parse().map_err(|_| "bad link".to_string())?).map_err(|e| e.to_string())?;
+        shell::set_panel(app, false);
+        return Ok(());
+    }
+    if !url.starts_with("https://github.com/") {
         return Err("link not allowed".into());
     }
-    webview.app_handle().opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
+    app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string())
 }
 
 /// "What's new" in the settings footer: show this version's changes over the website.

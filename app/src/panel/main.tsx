@@ -35,6 +35,8 @@ type OwnMatch = {
 
 // Until magmamcsr.com has a privacy page, this explains what the app does and sends.
 const LEARN_MORE = "https://github.com/magma-mcsr/magma-app#what-it-does";
+/** Every setting on the Replays tab and under the gear, explained (opens in the Website tab) */
+const SETTINGS_DOC = "https://magmamcsr.com/docs/app/settings";
 // Both players are in the name, so the file is identifiable when several players are synced.
 const EXAMPLE_FILE = "2026-10-16_14201972_Feinberg_vs_subdas.rrf";
 
@@ -649,6 +651,7 @@ function Panel({ init }: { init: Init }) {
           <NetworkPicker value={settings.network} onChange={(name) => set("set_network", { name })} />
         </div>
       </section>
+      <p className="page-foot">{link(SETTINGS_DOC, "All settings explained")}</p>
     </>
   );
 
@@ -677,6 +680,7 @@ function Panel({ init }: { init: Init }) {
           <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
         </div>
       </section>
+      <p className="page-foot">{link(SETTINGS_DOC, "All settings explained")}</p>
     </>
   );
 

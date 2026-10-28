@@ -289,6 +289,12 @@ h1 {
   color: #ffd230;
 }
 
+/* A link under the last card of a page */
+.page-foot {
+  margin: 14px 0 0;
+  text-align: center;
+}
+
 .card {
   margin: 0 0 16px;
   padding: 16px 18px;

@@ -78,6 +78,11 @@ button {
   margin-right: 6px;
 }
 
+/* Drawn on a 24 grid, the others on 16: a thicker stroke gives the same line on screen */
+.icon.settings svg {
+  stroke-width: 2.4;
+}
+
 .icon.settings[aria-pressed="true"] {
   background: #262626;
   color: #fafafa;

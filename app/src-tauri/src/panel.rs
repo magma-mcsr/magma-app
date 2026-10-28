@@ -151,13 +151,13 @@ pub async fn detect_accounts(webview: Webview, client: State<'_, Client>) -> Res
 
 /// Load a player's match list (or one match) on the website. With `show`, switch to the website.
 #[tauri::command]
-pub fn show_player_matches(webview: Webview, nickname: String, match_id: Option<i64>, show: Option<bool>) -> Result<(), String> {
+pub fn show_player_matches(webview: Webview, nickname: String, match_id: Option<i64>, season: Option<i64>, show: Option<bool>) -> Result<(), String> {
     guard(&webview)?;
     if nickname.is_empty() || nickname.len() > 16 || !nickname.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return Err("invalid name".into());
     }
     let path = match match_id {
-        Some(id) => format!("/ranked/player/{nickname}/matches/{id}"),
+        Some(id) => crate::shell::match_path(&nickname, id, season),
         None => format!("/ranked/player/{nickname}/matches"),
     };
     let url = format!("{}{path}", crate::shell::SITE_URL).parse().map_err(|e| format!("{e}"))?;
@@ -269,6 +269,7 @@ pub struct OwnMatch {
     /// "won", "lost" or "draw" for the first player.
     outcome: &'static str,
     forfeited: bool,
+    season: Option<i64>,
     /// "analyzed" (the analysis is ready), "analyzing" (Magma has the replay, the analysis is not
     /// ready yet), "uploading", "waiting" (not downloaded yet), "no_replay".
     state: &'static str,
@@ -311,6 +312,7 @@ pub async fn recent_own(webview: Webview, client: State<'_, Client>, store: Stat
             opponent: m.players.iter().find(|p| p.uuid != me.uuid).map(|p| p.nickname.clone()),
             outcome,
             forfeited: m.forfeited,
+            season: m.season,
             state,
         });
     }

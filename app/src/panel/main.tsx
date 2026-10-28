@@ -30,11 +30,11 @@ type OwnMatch = {
   opponent: string | null;
   outcome: "won" | "lost" | "draw";
   forfeited: boolean;
+  season: number | null;
   state: "analyzed" | "analyzing" | "uploading" | "waiting" | "no_replay";
 };
 
-// Until magmamcsr.com has a privacy page, this explains what the app does and sends.
-/** For people checking what the app does in detail (About) */
+/** For people checking what the app does in detail (About): the README says what it reads, downloads and sends */
 const LEARN_MORE = "https://github.com/magma-mcsr/magma-app#what-it-does";
 /** "Learn more" for everyone else: the app's page in Magma's docs (opens in the Website tab) */
 const APP_DOC = "https://magmamcsr.com/docs/app";
@@ -532,7 +532,7 @@ function RecentMatches({ me }: { me: Tracked }) {
               <button
                 className="match"
                 disabled={m.state !== "analyzed"}
-                onClick={() => invoke("show_player_matches", { nickname: me.nickname, matchId: m.id, show: true }).catch(console.error)}
+                onClick={() => invoke("show_player_matches", { nickname: me.nickname, matchId: m.id, season: m.season ?? null, show: true }).catch(console.error)}
               >
                 <span className={`outcome ${m.outcome}`}>{m.outcome === "won" ? "Won" : m.outcome === "lost" ? "Lost" : "Draw"}</span>
                 <span className="vs">

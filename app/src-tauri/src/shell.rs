@@ -432,10 +432,19 @@ pub fn show_page(app: &AppHandle, page: &'static str) {
     set_panel(app, true);
 }
 
+/// A match page on Magma. With the season, the page opens right away instead of looking it up
+/// on MCSR Ranked's API first (which shares the API limit with the app's own requests).
+pub fn match_path(nickname: &str, match_id: i64, season: Option<i64>) -> String {
+    match season {
+        Some(s) => format!("/ranked/player/{nickname}/matches/{match_id}?season={s}"),
+        None => format!("/ranked/player/{nickname}/matches/{match_id}"),
+    }
+}
+
 /// Show the window on a match page, opening the window if it was closed to the tray.
-pub fn show_match(app: &AppHandle, nickname: &str, match_id: i64) {
+pub fn show_match(app: &AppHandle, nickname: &str, match_id: i64, season: Option<i64>) {
     show_main(app);
-    if let (Some(site), Ok(url)) = (app.get_webview(SITE_LABEL), format!("{SITE_URL}/ranked/player/{nickname}/matches/{match_id}").parse()) {
+    if let (Some(site), Ok(url)) = (app.get_webview(SITE_LABEL), format!("{SITE_URL}{}", match_path(nickname, match_id, season)).parse()) {
         let _ = site.navigate(url);
     }
     set_panel(app, false);

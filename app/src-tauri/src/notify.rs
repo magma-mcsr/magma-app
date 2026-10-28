@@ -5,7 +5,7 @@
 use tauri::AppHandle;
 
 /// Show "Analysis ready" for a match; a click shows the window on the match page.
-pub fn analysis_ready(app: &AppHandle, nickname: &str, match_id: i64, summary: &str) {
+pub fn analysis_ready(app: &AppHandle, nickname: &str, match_id: i64, season: Option<i64>, summary: &str) {
     #[cfg(windows)]
     {
         use tauri_winrt_notification::Toast;
@@ -21,7 +21,7 @@ pub fn analysis_ready(app: &AppHandle, nickname: &str, match_id: i64, summary: &
             .on_activated(move |_| {
                 let app = handle.clone();
                 let nickname = nickname.clone();
-                let _ = handle.run_on_main_thread(move || crate::shell::show_match(&app, &nickname, match_id));
+                let _ = handle.run_on_main_thread(move || crate::shell::show_match(&app, &nickname, match_id, season));
                 Ok(())
             })
             .show();
@@ -30,5 +30,5 @@ pub fn analysis_ready(app: &AppHandle, nickname: &str, match_id: i64, summary: &
         }
     }
     #[cfg(not(windows))]
-    let _ = (app, nickname, match_id, summary);
+    let _ = (app, nickname, match_id, season, summary);
 }

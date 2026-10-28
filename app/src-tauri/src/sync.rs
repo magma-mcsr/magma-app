@@ -438,7 +438,7 @@ fn notify_when_analyzed(app: &AppHandle, me: &TrackedPlayer, m: &MatchSummary) {
         Some(_) => "Lost",
     };
     let summary = format!("{outcome} vs {opponent}");
-    let (app, nickname, id) = (app.clone(), me.nickname.clone(), m.id);
+    let (app, nickname, id, season) = (app.clone(), me.nickname.clone(), m.id, m.season);
     tauri::async_runtime::spawn(async move {
         let uploader = Uploader::new();
         for _ in 0..ANALYZED_TRIES {
@@ -446,7 +446,7 @@ fn notify_when_analyzed(app: &AppHandle, me: &TrackedPlayer, m: &MatchSummary) {
             if uploader.analyzed(&[id]).await.is_some_and(|done| done.contains(&id)) {
                 // The Replays tab's list updates at the same moment as the notification
                 let _ = app.emit_to(crate::shell::PANEL_LABEL, "own-analyzed", id);
-                crate::notify::analysis_ready(&app, &nickname, id, &summary);
+                crate::notify::analysis_ready(&app, &nickname, id, season, &summary);
                 return;
             }
         }

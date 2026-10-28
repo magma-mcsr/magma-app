@@ -64,6 +64,9 @@ pub struct MatchSummary {
     pub replay_exists: i64,
     #[serde(default)]
     pub forfeited: bool,
+    /// Ranked season. Put in the match link, so Magma does not have to look it up first.
+    #[serde(default)]
+    pub season: Option<i64>,
     pub result: MatchResult,
     pub players: Vec<Player>,
 }

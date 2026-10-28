@@ -3,6 +3,15 @@
 What changed in each version of the Magma MCSR app. The app shows the section for its own
 version after an update, and each GitHub release uses the same text.
 
+## 0.2.1
+
+- **One app at a time**: after a restart two copies of the app could run, downloading and uploading
+  the same replays twice. Opening it again now brings up the one that is already running.
+- After an update, What's new shows first instead of hiding behind the Replays tab, and shows each
+  item in full.
+- While your new match downloads, the title bar says "Downloading your new match" (it said
+  "Downloading 1 of 0").
+
 ## 0.2.0
 
 - **A Replays tab**: the app opens on its own **Replays** tab, with the website as the second tab,

@@ -3,6 +3,11 @@
 What changed in each version of the Magma MCSR app. The app shows the section for its own
 version after an update, and each GitHub release uses the same text.
 
+## 0.2.3
+
+- A sync statistics report that does not get through is tried again after 10 minutes, instead
+  of waiting 6 hours.
+
 ## 0.2.2
 
 - **Starts with Windows** for new installs, in the tray, so no match is missed when you forget to

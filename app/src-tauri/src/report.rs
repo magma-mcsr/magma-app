@@ -8,7 +8,8 @@
 //! - `syncOn`: whether replay sync is switched on
 //! - `players`: the UUIDs of the players in the list
 //!
-//! Turned off, nothing is sent. A failed report is not retried until the next one.
+//! Turned off, nothing is sent. A report that does not get through (offline, or turned away while
+//! the app is busy right after start) is tried again after 10 minutes.
 
 use std::time::Duration;
 
@@ -20,6 +21,7 @@ use crate::settings::Store;
 /// The first report a minute after start (sync settles first), then every 6 hours.
 const FIRST_AFTER: Duration = Duration::from_secs(60);
 const EVERY: Duration = Duration::from_secs(6 * 3600);
+const RETRY: Duration = Duration::from_secs(10 * 60);
 
 /// A new random install ID: 16 random bytes from the operating system, as 32 hex digits.
 pub fn new_install_id() -> Option<String> {
@@ -31,17 +33,18 @@ pub fn new_install_id() -> Option<String> {
 pub async fn run(app: AppHandle) {
     tokio::time::sleep(FIRST_AFTER).await;
     loop {
-        send(&app).await;
-        tokio::time::sleep(EVERY).await;
+        let wait = if send(&app).await { EVERY } else { RETRY };
+        tokio::time::sleep(wait).await;
     }
 }
 
-async fn send(app: &AppHandle) {
+/// False when the report should be tried again soon (it did not get through).
+async fn send(app: &AppHandle) -> bool {
     let s = app.state::<Store>().get();
     if !s.share_stats {
-        return;
+        return true;
     }
-    let Some(install_id) = s.install_id.clone() else { return };
+    let Some(install_id) = s.install_id.clone() else { return true };
     let body = json!({
         "installId": install_id,
         "appVersion": env!("CARGO_PKG_VERSION"),
@@ -52,7 +55,11 @@ async fn send(app: &AppHandle) {
     let client = crate::network::BoundClient::new(Duration::from_secs(30));
     client.bind(crate::network::local_address(s.network.as_deref()));
     let url = format!("{}/api/mcsr-ranked/app-report", crate::upload::base_url());
-    if let Err(e) = client.get().post(url).json(&body).send().await.and_then(|r| r.error_for_status()) {
-        eprintln!("[report] {e}");
+    match client.get().post(url).json(&body).send().await.and_then(|r| r.error_for_status()) {
+        Ok(_) => true,
+        Err(e) => {
+            eprintln!("[report] {e}");
+            false
+        }
     }
 }

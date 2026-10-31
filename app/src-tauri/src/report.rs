@@ -4,7 +4,7 @@
 //! The report is exactly this, and nothing else:
 //! - `installId`: a random ID made on first run and kept in the settings file. It is not derived
 //!   from anything on this computer and is not tied to any account.
-//! - `appVersion`
+//! - `appVersion`, ending in `-store` for the Microsoft Store build
 //! - `syncOn`: whether replay sync is switched on
 //! - `players`: the UUIDs of the players in the list
 //!
@@ -45,9 +45,10 @@ async fn send(app: &AppHandle) -> bool {
         return true;
     }
     let Some(install_id) = s.install_id.clone() else { return true };
+    let suffix = if crate::packaged::is_packaged() { "-store" } else { "" };
     let body = json!({
         "installId": install_id,
-        "appVersion": env!("CARGO_PKG_VERSION"),
+        "appVersion": format!("{}{suffix}", env!("CARGO_PKG_VERSION")),
         "syncOn": !s.paused,
         "players": s.players.iter().map(|p| p.uuid.as_str()).collect::<Vec<_>>(),
     });

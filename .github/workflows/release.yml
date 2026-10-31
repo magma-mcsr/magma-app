@@ -101,3 +101,15 @@ jobs:
             --data-binary @"$installer" \
             "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets?name=Magma-MCSR-Setup.exe" \
             > /dev/null
+
+      # The package for the Microsoft Store, uploaded there by hand. Kept with this workflow run,
+      # not in the release: it is unsigned until the Store signs it.
+      - name: Build the Microsoft Store package
+        shell: pwsh
+        run: ./app/msix/build.ps1 -NoBuild
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: magma-mcsr-msix
+          path: target/msix/magma-mcsr.msix
+          if-no-files-found: error

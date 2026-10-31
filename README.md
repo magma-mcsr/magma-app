@@ -65,7 +65,8 @@ are still available and sends them to Magma for analysis.
   file, the app version, whether sync is on, and the UUIDs of the players in your list. It contains
   nothing about your computer or accounts. The server stores a hashed IP with it, as it does for
   uploads.
-- Checks this repository's GitHub Releases for updates. A new version is installed when the app
+- Checks this repository's GitHub Releases for updates (the Microsoft Store build leaves updates
+  to the Store). A new version is installed when the app
   starts with Windows, or when you click "Update" in the title bar; it never closes on you
   while you are using it. An update is only installed if it is signed with the Magma update
   key; release installers are built from this repository by GitHub Actions
@@ -96,6 +97,7 @@ are still available and sends them to Magma for analysis.
 | What | File |
 |---|---|
 | What gets downloaded, and when | `app/src-tauri/src/sync.rs` |
+| What differs in the Microsoft Store build | `app/src-tauri/src/packaged.rs`, `app/msix/` |
 | What gets sent to Magma | `app/src-tauri/src/upload.rs`, `app/src-tauri/src/report.rs` |
 | Requests to the official API and replay CDN | `app/src-tauri/src/mcsr.rs` |
 | Which pages may call native features | `app/src-tauri/capabilities/default.json` |

@@ -1,12 +1,13 @@
 # Builds the unsigned MSIX for the Microsoft Store: the Store signs it after certification.
-# Needs the Windows App Development CLI (winget install Microsoft.WinAppCli).
+# Pass -NoBuild to package an exe that is already built, as the release workflow does.
 # Output: target/msix/magma-mcsr.msix
 # The Store does not allow a version starting with 0, so app version 0.x.y is packaged as 1.x.y.0.
+param([switch]$NoBuild)
 $ErrorActionPreference = 'Stop'
 $app = Split-Path $PSScriptRoot
 $root = Split-Path $app
 Set-Location $app
-npx tauri build --no-bundle
+if (-not $NoBuild) { npx tauri build --no-bundle }
 $layout = Join-Path $root 'target/msix/layout'
 Remove-Item -Recurse -Force $layout -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $layout | Out-Null
@@ -17,4 +18,4 @@ $manifest = (Get-Content (Join-Path $PSScriptRoot 'Package.appxmanifest') -Raw) 
 Set-Content (Join-Path $layout 'Package.appxmanifest') $manifest -NoNewline
 Copy-Item -Recurse (Join-Path $PSScriptRoot 'Assets') $layout
 Set-Location $layout
-winapp package . --output ../magma-mcsr.msix --no-sign
+npx --yes @microsoft/winappcli@0.7.1 package . --output ../magma-mcsr.msix --no-sign

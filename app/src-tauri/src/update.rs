@@ -12,12 +12,15 @@
 //!   with the queued files kept. If the window is open, a notice covers the website and
 //!   the user chooses to update or quit; with no window open, the update is installed.
 //! - After an update, "What's new" (from CHANGELOG.md) is shown once over the website.
+//! - The Microsoft Store build (see packaged.rs) never updates itself: the Store does that, and
+//!   the files of a package are read-only. A required update opens the app's Store page.
 
 use std::sync::Mutex;
 use std::time::Duration;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
 use tokio::sync::Notify;
 
@@ -111,6 +114,9 @@ pub fn install_ready(app: &AppHandle) -> Result<(), String> {
 
 /// "Update now" on the required-update notice: install as soon as the update is here.
 pub fn install_now(app: &AppHandle) -> Result<(), String> {
+    if let Some(url) = crate::packaged::store_url() {
+        return app.opener().open_url(url, None::<&str>).map_err(|e| e.to_string());
+    }
     let updates = app.state::<Updates>();
     updates.install_requested.store(true, std::sync::atomic::Ordering::Relaxed);
     let ready = updates.ready.lock().expect("update lock").take();
@@ -150,13 +156,13 @@ async fn check_and_download(app: &AppHandle) -> Result<Option<(Update, Vec<u8>)>
 }
 
 pub async fn run(app: AppHandle) {
-    // Development builds are never replaced by a release.
-    if cfg!(debug_assertions) {
+    // Development builds are never replaced by a release; the Store updates its own build.
+    if cfg!(debug_assertions) || crate::packaged::is_packaged() {
         return;
     }
     tokio::time::sleep(FIRST_CHECK_DELAY).await;
     // Started at login, nobody has opened the window yet: updating now interrupts no one.
-    let mut quiet = std::env::args().any(|a| a == "--background");
+    let mut quiet = crate::packaged::started_at_login();
     loop {
         let updates = app.state::<Updates>();
         let required = || app.state::<Engine>().live().update_required;

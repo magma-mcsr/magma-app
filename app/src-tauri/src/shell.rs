@@ -77,7 +77,7 @@ pub fn setup(app: &mut App) -> tauri::Result<()> {
     build_tray(app)?;
     // Started at login: stay in the tray. The window, and the website in it, is only
     // created when the user opens it.
-    if !std::env::args().any(|a| a == "--background") {
+    if !crate::packaged::started_at_login() {
         open_main(app.handle())?;
     }
     Ok(())

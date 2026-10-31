@@ -3,6 +3,7 @@ mod game;
 mod mcsr;
 mod network;
 mod notify;
+mod packaged;
 mod panel;
 mod report;
 mod placement;
@@ -51,8 +52,10 @@ pub fn run() {
             app.state::<update::Updates>().note_version(&app.state::<settings::Store>());
             std::thread::spawn(update::clean_old_installers);
             // Rewrite the startup entry on every launch: it then always points at this
-            // install, quoted (versions before 0.1.2 wrote it without quotes).
-            if app.state::<settings::Store>().get().start_with_windows {
+            // install, quoted (versions before 0.1.2 wrote it without quotes). A packaged app
+            // has no entry to rewrite: Windows keeps that setting, and the user may have turned
+            // it off there.
+            if !packaged::is_packaged() && app.state::<settings::Store>().get().start_with_windows {
                 if let Err(e) = autostart::enable() {
                     eprintln!("[autostart] {e}");
                 }

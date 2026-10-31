@@ -9,9 +9,14 @@ pub fn analysis_ready(app: &AppHandle, nickname: &str, match_id: i64, season: Op
     #[cfg(windows)]
     {
         use tauri_winrt_notification::Toast;
-        // An installed app has its own identity (the installer's shortcut); a development build
-        // has none, so Windows only shows notifications that borrow PowerShell's.
-        let app_id = if cfg!(debug_assertions) { Toast::POWERSHELL_APP_ID } else { "com.magmamcsr.app" };
+        // An installed app has its own identity (the installer's shortcut, or the package); a
+        // development build has none, so Windows only shows notifications that borrow PowerShell's.
+        let packaged_id = crate::packaged::app_user_model_id();
+        let app_id = match &packaged_id {
+            Some(id) => id.as_str(),
+            None if cfg!(debug_assertions) => Toast::POWERSHELL_APP_ID,
+            None => "com.magmamcsr.app",
+        };
         let handle = app.clone();
         let nickname = nickname.to_owned();
         let shown = Toast::new(app_id)

@@ -2262,6 +2262,8 @@ dependencies = [
  "tauri-plugin-updater",
  "tauri-winrt-notification",
  "tokio",
+ "windows",
+ "windows-future",
  "windows-sys 0.61.2",
 ]
 

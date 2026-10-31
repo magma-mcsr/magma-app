@@ -47,6 +47,8 @@ pub struct Settings {
     pub share_stats: bool,
     /// Random ID for this install, made on first run, sent only in that report.
     pub install_id: Option<String>,
+    /// This build said once that the Microsoft Store build is installed too (see lib.rs).
+    pub store_build_notice_shown: bool,
 }
 
 impl Default for Settings {
@@ -69,6 +71,7 @@ impl Default for Settings {
             notify_analyzed: true,
             share_stats: true,
             install_id: None,
+            store_build_notice_shown: false,
         }
     }
 }

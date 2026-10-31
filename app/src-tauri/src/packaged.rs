@@ -3,6 +3,8 @@
 //! starting with Windows (see autostart.rs), the name notifications go out under (notify.rs)
 //! and updates, which come from the Store (update.rs).
 
+const STORE_PACKAGE_FAMILY: &str = "MagmaMCSR.MagmaMCSR_2rye98jc3yv92";
+
 /// Reads a string from one of the `GetCurrent...` package functions, which fail when the
 /// program does not run from a package.
 #[cfg(windows)]
@@ -50,6 +52,14 @@ pub fn store_url() -> Option<String> {
     }
     #[cfg(not(windows))]
     None
+}
+
+/// True when the installer build finds the Store build on this computer as well. Windows keeps a
+/// data folder for every installed package, named after the package family.
+pub fn store_build_installed() -> bool {
+    !is_packaged()
+        && std::env::var_os("LOCALAPPDATA")
+            .is_some_and(|dir| std::path::Path::new(&dir).join("Packages").join(STORE_PACKAGE_FAMILY).is_dir())
 }
 
 /// True when this run was started at login, so it stays in the tray with no window. The installer

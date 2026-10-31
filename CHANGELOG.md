@@ -7,6 +7,9 @@ version after an update, and each GitHub release uses the same text.
 
 - A sync statistics report that does not get through is tried again after 10 minutes, instead
   of waiting 6 hours.
+- If the Microsoft WebView2 Runtime is missing, the app says so and offers the download page.
+- If the Microsoft Store version is installed too, this version stops starting with Windows, so the
+  two never run side by side.
 
 ## 0.2.2
 

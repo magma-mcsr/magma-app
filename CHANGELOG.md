@@ -7,6 +7,10 @@ version after an update, and each GitHub release uses the same text.
 
 - The app keeps a log of what held sync up (download limits, network and server errors) in
   `magma.log`, next to its settings, so a slow upload can be explained. It is never sent anywhere.
+- The Microsoft Store version updates itself like the other version: it shows "Update" in the title
+  bar when the Store has a new version, installs it when it starts with Windows, and also when you
+  quit it from the tray. Before, the Store waited until the app was not running, which for an app
+  in the tray could be never.
 
 ## 0.2.3
 

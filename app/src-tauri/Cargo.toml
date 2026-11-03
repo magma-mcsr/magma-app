@@ -34,9 +34,11 @@ getrandom = "0.3"
 
 
 [target.'cfg(windows)'.dependencies]
-# The MSIX package: how it was started and its startup task (packaged.rs, autostart.rs).
-windows = { version = "0.62", features = ["ApplicationModel", "ApplicationModel_Activation", "Foundation"] }
+# The MSIX package: how it was started, its startup task and its Store updates (packaged.rs,
+# autostart.rs, update.rs).
+windows = { version = "0.62", features = ["ApplicationModel", "ApplicationModel_Activation", "Foundation", "Foundation_Collections", "Services_Store"] }
 windows-future = "0.3"
 tauri-winrt-notification = "0.8.1"
-# Window placement (fullscreen without visible resizing) and the startup registry entry.
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Storage_Packaging_Appx", "Win32_System_Registry", "Win32_UI_WindowsAndMessaging"] }
+# Window placement (fullscreen without visible resizing), the startup registry entry, and starting
+# again after a Store update.
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_Storage_Packaging_Appx", "Win32_System_Recovery", "Win32_System_Registry", "Win32_UI_WindowsAndMessaging"] }

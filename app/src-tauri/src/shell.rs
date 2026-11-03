@@ -479,7 +479,7 @@ fn build_tray(app: &App) -> tauri::Result<()> {
     }
     tray.on_menu_event(|app, event| match event.id.as_ref() {
         "open" => show_main(app),
-        "quit" => app.exit(0),
+        "quit" => crate::update::quit(app),
         _ => {}
     })
     .on_tray_icon_event(|tray, event| {

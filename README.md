@@ -65,10 +65,10 @@ are still available and sends them to Magma for analysis.
   file, the app version, whether sync is on, and the UUIDs of the players in your list. It contains
   nothing about your computer or accounts. The server stores a hashed IP with it, as it does for
   uploads.
-- Checks this repository's GitHub Releases for updates (the Microsoft Store build leaves updates
-  to the Store). A new version is installed when the app
+- Checks this repository's GitHub Releases for updates (the Microsoft Store build asks the Store
+  instead, and the Store installs it). A new version is installed when the app
   starts with Windows, or when you click "Update" in the title bar; it never closes on you
-  while you are using it. An update is only installed if it is signed with the Magma update
+  while you are using it. The Store build also installs it when you quit from the tray. An update is only installed if it is signed with the Magma update
   key; release installers are built from this repository by GitHub Actions
   (`.github/workflows/release.yml`).
 - Keeps a log of what held sync up (download limits, network and server errors, updates) in

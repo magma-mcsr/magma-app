@@ -59,7 +59,7 @@ async fn send(app: &AppHandle) -> bool {
     match client.get().post(url).json(&body).send().await.and_then(|r| r.error_for_status()) {
         Ok(_) => true,
         Err(e) => {
-            eprintln!("[report] {e}");
+            log!("[report] {e}");
             false
         }
     }

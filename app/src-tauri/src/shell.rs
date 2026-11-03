@@ -313,12 +313,12 @@ fn download_handler(app: AppHandle) -> impl Fn(Webview, tauri::webview::Download
 /// or launch programs.
 fn open_externally(app: &AppHandle, url: &tauri::Url) {
     if !matches!(url.scheme(), "http" | "https" | "mailto") {
-        eprintln!("[shell] ignored link with scheme {}", url.scheme());
+        log!("[shell] ignored link with scheme {}", url.scheme());
         return;
     }
     use tauri_plugin_opener::OpenerExt;
     if let Err(e) = app.opener().open_url(url.as_str(), None::<&str>) {
-        eprintln!("[shell] could not open {url}: {e}");
+        log!("[shell] could not open {url}: {e}");
     }
 }
 
@@ -409,7 +409,7 @@ pub fn show_notice(app: &AppHandle, notice: Notice) {
             // Same dark as the page, so it does not flash white while loading.
             .background_color(tauri::window::Color(11, 11, 13, 255));
         if let Err(e) = window.add_child(builder, LogicalPosition::new(0.0, TITLEBAR_HEIGHT), LogicalSize::new(100.0, 100.0)) {
-            eprintln!("[shell] could not show the update notice: {e}");
+            log!("[shell] could not show the update notice: {e}");
             return;
         }
     }
@@ -465,7 +465,7 @@ pub(crate) fn show_main(app: &AppHandle) {
         let _ = w.unminimize();
         let _ = w.set_focus();
     } else if let Err(e) = open_main(app) {
-        eprintln!("[shell] could not open the window: {e}");
+        log!("[shell] could not open the window: {e}");
     }
 }
 

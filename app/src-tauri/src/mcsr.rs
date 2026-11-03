@@ -205,6 +205,7 @@ impl Client {
                     .and_then(|v| v.to_str().ok())
                     .and_then(|v| v.parse::<u64>().ok())
                     .unwrap_or(300);
+                log!("[sync] replay server rate limit (HTTP 429) on {match_id}: waiting {}s", retry + 5);
                 tokio::time::sleep(Duration::from_secs(retry + 5)).await;
                 continue;
             }

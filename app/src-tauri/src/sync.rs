@@ -276,7 +276,7 @@ pub async fn run(app: AppHandle) {
                         known.entry(m.id).or_insert(m);
                     }
                 }
-                Err(e) => eprintln!("[sync] matches for {}: {e}", player.nickname),
+                Err(e) => log!("[sync] matches for {}: {e}", player.nickname),
             }
         }
         // A match belongs to its highest listed player; matches of removed players are dropped.
@@ -387,7 +387,7 @@ async fn fetch(
                     let path = Path::new(folder).join(file_name(m, &settings.players));
                     if std::fs::create_dir_all(folder).is_ok() && !path.exists() {
                         if let Err(e) = std::fs::write(&path, &bytes) {
-                            eprintln!("[sync] could not save {}: {e}", path.display());
+                            log!("[sync] could not save {}: {e}", path.display());
                         }
                     }
                 }
@@ -399,7 +399,7 @@ async fn fetch(
         }
         // Gone from the CDN: nothing more can be done for this one.
         Err(e) if e.contains("no longer available") || e.contains("no replay") => journal.mark(data_dir, m.id),
-        Err(e) => eprintln!("[sync] download {}: {e}", m.id),
+        Err(e) => log!("[sync] download {}: {e}", m.id),
     }
     true
 }
@@ -432,7 +432,7 @@ async fn check_own(
     let matches = match client.newest_matches(&first.uuid, OWN_CHECK_COUNT).await {
         Ok(m) => m,
         Err(e) => {
-            eprintln!("[sync] newest matches for {}: {e}", first.nickname);
+            log!("[sync] newest matches for {}: {e}", first.nickname);
             return;
         }
     };
@@ -499,7 +499,7 @@ async fn flush_uploads(app: &AppHandle, uploader: &Uploader, dir: &Path, blocked
                 let _ = std::fs::remove_file(&path);
             }
             Outcome::Rejected(why) => {
-                eprintln!("[sync] upload {match_id} rejected: {why}");
+                log!("[sync] upload {match_id} rejected: {why}");
                 let _ = std::fs::remove_file(&path);
             }
             Outcome::UpdateRequired => {
@@ -507,7 +507,7 @@ async fn flush_uploads(app: &AppHandle, uploader: &Uploader, dir: &Path, blocked
                 break;
             }
             Outcome::Retry { after, reason } => {
-                eprintln!("[sync] upload paused for {}s: {reason}", after.as_secs());
+                log!("[sync] upload paused for {}s: {reason}", after.as_secs());
                 *blocked_until = Some(tokio::time::Instant::now() + after);
                 break;
             }

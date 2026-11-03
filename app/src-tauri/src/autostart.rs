@@ -45,7 +45,7 @@ pub fn enable() -> Result<(), String> {
     // A development build shares its settings with the installed app; never point the
     // startup entry at it.
     if cfg!(debug_assertions) {
-        eprintln!("[autostart] development build: startup entry left unchanged");
+        log!("[autostart] development build: startup entry left unchanged");
         return Ok(());
     }
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
@@ -68,7 +68,7 @@ pub fn disable() -> Result<(), String> {
         return startup_task()?.Disable().map_err(|e| e.to_string());
     }
     if cfg!(debug_assertions) {
-        eprintln!("[autostart] development build: startup entry left unchanged");
+        log!("[autostart] development build: startup entry left unchanged");
         return Ok(());
     }
     let status = unsafe { RegDeleteKeyValueW(HKEY_CURRENT_USER, wide(RUN_KEY).as_ptr(), wide(VALUE_NAME).as_ptr()) };

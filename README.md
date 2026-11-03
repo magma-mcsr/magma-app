@@ -71,6 +71,9 @@ are still available and sends them to Magma for analysis.
   while you are using it. An update is only installed if it is signed with the Magma update
   key; release installers are built from this repository by GitHub Actions
   (`.github/workflows/release.yml`).
+- Keeps a log of what held sync up (download limits, network and server errors, updates) in
+  `magma.log` next to its settings, with times, match numbers and listed player names. It is never
+  sent anywhere. Past 1 MB it starts a new one and keeps only the previous file.
 - If Magma stops accepting an old version of the app, uploads pause (nothing is deleted) and the
   app asks you to update or quit.
 

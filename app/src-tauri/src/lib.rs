@@ -1,3 +1,5 @@
+#[macro_use]
+mod log;
 mod autostart;
 mod game;
 mod mcsr;
@@ -46,7 +48,7 @@ fn step_aside_for_store_build(app: &tauri::AppHandle) {
         return;
     }
     if let Err(e) = autostart::disable() {
-        eprintln!("[autostart] {e}");
+        log!("[autostart] {e}");
     }
     let store = app.state::<settings::Store>();
     if store.get().store_build_notice_shown {
@@ -94,6 +96,7 @@ pub fn run() {
         .manage(update::Updates::new())
         .setup(|app| {
             let dir = settings::app_dir(app.handle())?;
+            log::init(&dir);
             app.manage(settings::Store::load(dir));
             app.state::<update::Updates>().note_version(&app.state::<settings::Store>());
             std::thread::spawn(update::clean_old_installers);
@@ -103,7 +106,7 @@ pub fn run() {
             // it off there.
             if !packaged::is_packaged() && !packaged::store_build_installed() && app.state::<settings::Store>().get().start_with_windows {
                 if let Err(e) = autostart::enable() {
-                    eprintln!("[autostart] {e}");
+                    log!("[autostart] {e}");
                 }
             }
             step_aside_for_store_build(app.handle());

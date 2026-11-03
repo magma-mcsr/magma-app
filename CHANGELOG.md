@@ -3,6 +3,11 @@
 What changed in each version of the Magma MCSR app. The app shows the section for its own
 version after an update, and each GitHub release uses the same text.
 
+## Unreleased
+
+- The app keeps a log of what held sync up (download limits, network and server errors) in
+  `magma.log`, next to its settings, so a slow upload can be explained. It is never sent anywhere.
+
 ## 0.2.3
 
 - A sync statistics report that does not get through is tried again after 10 minutes, instead

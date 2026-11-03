@@ -31,7 +31,7 @@ pub fn analysis_ready(app: &AppHandle, nickname: &str, match_id: i64, season: Op
             })
             .show();
         if let Err(e) = shown {
-            eprintln!("[notify] {e}");
+            log!("[notify] {e}");
         }
     }
     #[cfg(not(windows))]

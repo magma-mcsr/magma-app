@@ -97,7 +97,7 @@ impl Updates {
     pub fn require(&self, app: &AppHandle) {
         let engine = app.state::<Engine>();
         if !engine.live().update_required {
-            eprintln!("[update] server requires a newer version");
+            log!("[update] server requires a newer version");
             engine.set(app, |l| l.update_required = true);
             crate::shell::show_notice(app, crate::shell::Notice::Required);
         }
@@ -142,7 +142,7 @@ pub fn clean_old_installers() {
 }
 
 fn install(update: &Update, bytes: &[u8]) -> Result<(), String> {
-    eprintln!("[update] installing {}", update.version);
+    log!("[update] installing {}", update.version);
     update.install(bytes).map_err(|e| e.to_string())
 }
 
@@ -150,7 +150,7 @@ async fn check_and_download(app: &AppHandle) -> Result<Option<(Update, Vec<u8>)>
     let Some(update) = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())? else {
         return Ok(None);
     };
-    eprintln!("[update] downloading {}", update.version);
+    log!("[update] downloading {}", update.version);
     let bytes = update.download(|_, _| {}, || {}).await.map_err(|e| e.to_string())?;
     Ok(Some((update, bytes)))
 }
@@ -180,7 +180,7 @@ pub async fn run(app: AppHandle) {
             let ready = updates.ready.lock().expect("update lock").take();
             if let Some((update, bytes)) = ready {
                 if let Err(e) = install(&update, &bytes) {
-                    eprintln!("[update] install failed: {e}");
+                    log!("[update] install failed: {e}");
                 }
             }
         }
@@ -190,7 +190,7 @@ pub async fn run(app: AppHandle) {
             match check_and_download(&app).await {
                 Ok(Some((update, bytes))) if quiet || (required() && may_install_required()) => {
                     if let Err(e) = install(&update, &bytes) {
-                        eprintln!("[update] install failed: {e}");
+                        log!("[update] install failed: {e}");
                     }
                 }
                 Ok(Some(ready)) => {
@@ -198,7 +198,7 @@ pub async fn run(app: AppHandle) {
                     let _ = app.emit_to(TITLEBAR_LABEL, "update-status", updates.status());
                 }
                 Ok(None) => {}
-                Err(e) => eprintln!("[update] check failed: {e}"),
+                Err(e) => log!("[update] check failed: {e}"),
             }
         }
         quiet = false;

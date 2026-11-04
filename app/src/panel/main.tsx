@@ -699,6 +699,12 @@ function Panel({ init }: { init: Init }) {
     </>
   );
 
+  const linkButton = (url: string, text: string) => (
+    <button className="btn" onClick={() => invoke("open_link", { url }).catch(console.error)}>
+      {text}
+    </button>
+  );
+
   const appSettings = (
     <>
       <header className="page-head">
@@ -734,8 +740,8 @@ function Panel({ init }: { init: Init }) {
           <Toggle label="Share sync statistics" checked={settings.shareStats} onChange={(v) => set("set_share_stats", { enabled: v })} />
         </div>
         <p className="setting-note">
-          Every few hours: a random ID for this install, the app version, whether sync is on, and your player list.
-          Never your Minecraft account.
+          Every few hours, the app sends a random ID for this install, the app version, whether sync is on, and your
+          player list. It never sends your Minecraft account.
         </p>
       </section>
       <p className="page-foot">{link(SETTINGS_DOC, "All settings explained")}</p>
@@ -750,17 +756,17 @@ function Panel({ init }: { init: Init }) {
       <section className="card">
         <div className="setting">
           <span>Magma MCSR app v{init.version}</span>
-          <button className="link" onClick={() => invoke("show_whats_new").catch(console.error)}>
+          <button className="btn" onClick={() => invoke("show_whats_new").catch(console.error)}>
             What's new
           </button>
         </div>
-        <p className="about-text">
-          The app is open source, so you can check exactly what it reads, downloads and sends. {link(LEARN_MORE, "What it does")}
-          {" · "}
-          {link(REPO, "Source code")}
-          {" · "}
-          {link("https://magmamcsr.com/", "magmamcsr.com")}
-        </p>
+        <p className="about-text">The app is open source, so you can check exactly what it reads, downloads and sends.</p>
+        {/* Places to go, so buttons in a row rather than links inside a sentence */}
+        <div className="button-row">
+          {linkButton(LEARN_MORE, "What it does")}
+          {linkButton(REPO, "Source code")}
+          {linkButton("https://magmamcsr.com/", "magmamcsr.com")}
+        </div>
         <p className="about-text muted">Magma MCSR is a community project, not affiliated with MCSR Ranked.</p>
       </section>
     </>

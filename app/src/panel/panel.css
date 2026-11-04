@@ -966,7 +966,21 @@ footer {
   gap: 2px;
   flex: none;
   width: 180px;
-  padding: 88px 10px 28px;
+  /* A card like the page next to it, its top level with the first card there */
+  align-self: flex-start;
+  margin-top: 92px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(23, 23, 23, 0.85);
+  backdrop-filter: blur(14px);
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .nav-item {
@@ -987,7 +1001,7 @@ footer {
 }
 
 .nav-item[aria-current="page"] {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--secondary);
   color: var(--text);
   font-weight: 600;
 }

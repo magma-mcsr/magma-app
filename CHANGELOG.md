@@ -12,6 +12,8 @@ version after an update, and each GitHub release uses the same text.
   quit it from the tray. Before, the Store waited until the app was not running, which for an app
   in the tray could be never.
 - "Your recent matches" shows the faces of you and each opponent next to the names.
+- The first player in your list stands out and says it is checked every 15 seconds. When you move
+  someone else to the top, the app says what that changes.
 
 ## 0.2.3
 

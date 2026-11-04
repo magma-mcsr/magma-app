@@ -528,6 +528,28 @@ h2 {
   border-radius: 6px;
 }
 
+/* The first player is checked every 15 seconds; the others in turn. */
+.row.first {
+  background: var(--secondary);
+}
+
+.first-note {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* After the first player changes, says what that means. */
+.first-changed {
+  margin: 6px 0 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 /* The row being dragged stays in place, faded, so you can see where it came from. */
 .row.dragging {
   opacity: 0.35;

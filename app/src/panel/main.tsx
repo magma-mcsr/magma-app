@@ -197,6 +197,7 @@ function PlayerRows({ rows, onMove, onRemove }: { rows: Tracked[]; onMove: (from
       key={p.uuid}
       className={[
         "row",
+        i === 0 && "first",
         dragging === i && "dragging",
         showGap(i) && "drop-above",
         i === rows.length - 1 && showGap(rows.length) && "drop-below",
@@ -220,6 +221,8 @@ function PlayerRows({ rows, onMove, onRemove }: { rows: Tracked[]; onMove: (from
       </span>
       <Avatar uuid={p.uuid} name={p.nickname} />
       <span className="name">{p.nickname}</span>
+      {/* The first player is the one checked every 15 seconds (sync.rs, check_own) */}
+      {i === 0 && <span className="first-note">Checked every 15 s</span>}
       <button className="remove" aria-label={`Stop syncing ${p.nickname}`} onClick={() => onRemove(p)}>
         ✕
       </button>
@@ -230,7 +233,17 @@ function PlayerRows({ rows, onMove, onRemove }: { rows: Tracked[]; onMove: (from
 function Players({ settings, setSettings }: { settings: Settings; setSettings: (s: Settings) => void }) {
   const [order, setOrder] = useState(settings.players);
   const [showAll, setShowAll] = useState(false);
+  // Shown for a while after the first player changes: only that player is checked every 15 seconds.
+  const [firstChanged, setFirstChanged] = useState<{ now: string; before: string } | null>(null);
   useEffect(() => setOrder(settings.players), [settings.players]);
+  useEffect(() => {
+    if (!firstChanged) return;
+    const timer = window.setTimeout(() => setFirstChanged(null), 12_000);
+    return () => window.clearTimeout(timer);
+  }, [firstChanged]);
+  function noteFirst(before: Tracked[], after: Tracked[]) {
+    if (before[0] && after[0] && before[0].uuid !== after[0].uuid) setFirstChanged({ now: after[0].nickname, before: before[0].nickname });
+  }
   const folded = order.length > FOLD_OVER;
   // Closes by itself when removing players makes the list short again.
   useEffect(() => {
@@ -241,11 +254,17 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
     const next = [...order];
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
+    noteFirst(order, next);
     setOrder(next);
     invoke<Settings>("reorder_players", { uuids: next.map((p) => p.uuid) }).then(setSettings);
   }
-  const remove = (p: Tracked) => invoke<Settings>("remove_player", { uuid: p.uuid }).then(setSettings);
-  const hint = "When the download limit is reached, players higher in the list are downloaded first.";
+  const remove = (p: Tracked) =>
+    invoke<Settings>("remove_player", { uuid: p.uuid }).then((s) => {
+      noteFirst(order, s.players);
+      setSettings(s);
+    });
+  const hint =
+    "The first player is checked every 15 seconds, so their new matches are analyzed within a minute. When the download limit is reached, players higher in the list are downloaded first.";
 
   return (
     <section>
@@ -254,6 +273,12 @@ function Players({ settings, setSettings }: { settings: Settings; setSettings: (
         <InfoTip text={hint} />
       </h2>
       <PlayerRows rows={folded ? order.slice(0, FOLD_TO) : order} onMove={move} onRemove={remove} />
+      {firstChanged && (
+        <p className="first-changed" role="status">
+          <strong>{firstChanged.now}</strong> is now checked every 15 seconds. {firstChanged.before}&apos;s matches now wait with
+          the rest of the list, so they can take longer to be analyzed.
+        </p>
+      )}
       {folded && (
         <button className="link quiet fold" onClick={() => setShowAll(true)}>
           Show all {order.length} players

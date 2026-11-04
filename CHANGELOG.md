@@ -14,6 +14,10 @@ version after an update, and each GitHub release uses the same text.
 - "Your recent matches" shows the faces of you and each opponent next to the names.
 - The first player in your list stands out and says it is checked every 15 seconds. When you move
   someone else to the top, the app says what that changes.
+- Settings are split into Startup and Privacy, and "Share sync statistics" says right under it what it
+  sends.
+- Text sizes and headings match magmamcsr.com, and on a wide window the player list and sync options
+  sit beside your recent matches.
 
 ## 0.2.3
 

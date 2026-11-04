@@ -704,14 +704,10 @@ function Panel({ init }: { init: Init }) {
       <header className="page-head">
         <h1>Settings</h1>
       </header>
+      {/* What the app does on this computer, then what it sends: the second is about trust, so it is its own
+          group and says what is sent in plain sight, not in a tooltip (magma_design §9.4). */}
       <section className="card">
-        <div className="setting">
-          <span>
-            Notify when your match is analyzed{" "}
-            <InfoTip text="A Windows notification when a match the first player in your list just finished is analyzed. Click it to open the match." />
-          </span>
-          <Toggle label="Notify when your match is analyzed" checked={settings.notifyAnalyzed} onChange={(v) => set("set_notify_analyzed", { enabled: v })} />
-        </div>
+        <h2 className="card-title">Startup</h2>
         <div className="setting">
           <span>Start with Windows</span>
           <Toggle label="Start with Windows" checked={settings.startWithWindows} onChange={(v) => set("set_start_with_windows", { enabled: v })} />
@@ -724,12 +720,23 @@ function Panel({ init }: { init: Init }) {
           <Toggle label="Keep running in the tray" checked={settings.runInTray} onChange={(v) => set("set_run_in_tray", { enabled: v })} />
         </div>
         <div className="setting">
+          <span>Notify when your new match is analyzed</span>
+          <Toggle label="Notify when your new match is analyzed" checked={settings.notifyAnalyzed} onChange={(v) => set("set_notify_analyzed", { enabled: v })} />
+        </div>
+      </section>
+      <section className="card">
+        <h2 className="card-title">Privacy</h2>
+        <div className="setting">
           <span>
             Share sync statistics{" "}
-            <InfoTip text="Every few hours, the app tells Magma it is running: a random ID for this install, the app version, whether sync is on, and the players in your list. Nothing else, and never your Minecraft account. Magma uses it to see how many apps are syncing and which players are covered." />
+            <InfoTip text="Magma uses it to see how many apps are syncing and which players are covered." />
           </span>
           <Toggle label="Share sync statistics" checked={settings.shareStats} onChange={(v) => set("set_share_stats", { enabled: v })} />
         </div>
+        <p className="setting-note">
+          Every few hours: a random ID for this install, the app version, whether sync is on, and your player list.
+          Never your Minecraft account.
+        </p>
       </section>
       <p className="page-foot">{link(SETTINGS_DOC, "All settings explained")}</p>
     </>
@@ -748,12 +755,7 @@ function Panel({ init }: { init: Init }) {
           </button>
         </div>
         <p className="about-text">
-          The Website tab is magmamcsr.com, the same as in your browser. The app adds replay sync: it downloads the
-          replays of the players you list from MCSR Ranked's public replay server and uploads them to Magma for analysis.
-          Analyses are public.
-        </p>
-        <p className="about-text">
-          It is open source, so you can check exactly what it reads, downloads and sends. {link(LEARN_MORE, "What it does")}
+          The app is open source, so you can check exactly what it reads, downloads and sends. {link(LEARN_MORE, "What it does")}
           {" · "}
           {link(REPO, "Source code")}
           {" · "}

@@ -749,6 +749,14 @@ h2 {
   min-height: 36px;
 }
 
+/* What a setting means, right under it (magma_design §9.4: what is sent is said in plain sight). */
+.setting-note {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 /* Details that belong to the setting above, indented under it. */
 .sub {
   margin: 0 0 8px 12px;

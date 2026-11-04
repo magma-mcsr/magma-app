@@ -220,9 +220,12 @@ function PlayerRows({ rows, onMove, onRemove }: { rows: Tracked[]; onMove: (from
         ⠿
       </span>
       <Avatar uuid={p.uuid} name={p.nickname} />
-      <span className="name">{p.nickname}</span>
-      {/* The first player is the one checked every 15 seconds (sync.rs, check_own) */}
-      {i === 0 && <span className="first-note">Checked every 15 s</span>}
+      {/* The first player is the one checked every 15 seconds (sync.rs, check_own): said under the name, so
+          it fits in the narrow side column too */}
+      <span className="name">
+        {p.nickname}
+        {i === 0 && <span className="first-note">Checked every 15 s</span>}
+      </span>
       <button className="remove" aria-label={`Stop syncing ${p.nickname}`} onClick={() => onRemove(p)}>
         ✕
       </button>

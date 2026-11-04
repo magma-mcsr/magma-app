@@ -640,52 +640,59 @@ function Panel({ init }: { init: Init }) {
         <Toggle label="Sync replays" checked={!settings.paused} onChange={(on) => set("set_paused", { paused: !on })} />
       </header>
 
-      {settings.autoTrackedNotice && <SetupNotice me={settings.players[0]} onSettings={setSettings} />}
+      {/* Wide window: the matches in the middle, the list and options at the side (they are changed now and
+          then, the matches are what you open the app for). Narrow: one column, in the same order. */}
+      <div className="replays-layout">
+        <div className="replays-main">
+          {settings.autoTrackedNotice && <SetupNotice me={settings.players[0]} onSettings={setSettings} />}
 
-      <RecentMatches me={settings.players[0]} />
-
-      <section className="card">
-        <Players settings={settings} setSettings={setSettings} />
-      </section>
-
-      <section className="card">
-        <h2 className="card-title">Sync options</h2>
-        <div className="setting">
-          <span>
-            Keep a copy of replays{" "}
-            <InfoTip text="Saved to your MCSR Ranked replay folder when the app finds it, so they show up under My Replays in game." />
-          </span>
-          <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
+          <RecentMatches me={settings.players[0]} />
         </div>
-        {settings.keepCopy && (
-          // Belongs to the toggle above, so it is indented under it.
-          <div className="sub">
-            <div className="folder">
-              {/* The folder icon is a familiar enough convention to stand alone; the tooltip names it. */}
-              <span className="tip">
-                <button className="icon-button" aria-label="Change folder" onClick={() => set("choose_folder", {})}>
-                  <svg viewBox="0 0 16 16" aria-hidden>
-                    <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.5h5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
-                  </svg>
-                </button>
-                <span className="bubble short" role="tooltip">
-                  Change folder
-                </span>
+        <aside className="replays-side">
+          <section className="card">
+            <Players settings={settings} setSettings={setSettings} />
+          </section>
+
+          <section className="card">
+            <h2 className="card-title">Sync options</h2>
+            <div className="setting">
+              <span>
+                Keep a copy of replays{" "}
+                <InfoTip text="Saved to your MCSR Ranked replay folder when the app finds it, so they show up under My Replays in game." />
               </span>
-              <span className="path">{settings.copyFolder ?? init.defaultFolder}</span>
+              <Toggle label="Keep a copy of replays" checked={settings.keepCopy} onChange={(v) => set("set_keep_copy", { enabled: v })} />
             </div>
-            <div className="example">{EXAMPLE_FILE}</div>
-          </div>
-        )}
-        <div className="setting">
-          <span>
-            Network{" "}
-            <InfoTip text="Which connection downloads and uploads go through. Pick a different one than other computers syncing on the same network: each connection has its own download limit." />
-          </span>
-          <NetworkPicker value={settings.network} onChange={(name) => set("set_network", { name })} />
-        </div>
-      </section>
-      <p className="page-foot">{link(SETTINGS_DOC, "All settings explained")}</p>
+            {settings.keepCopy && (
+              // Belongs to the toggle above, so it is indented under it.
+              <div className="sub">
+                <div className="folder">
+                  {/* The folder icon is a familiar enough convention to stand alone; the tooltip names it. */}
+                  <span className="tip">
+                    <button className="icon-button" aria-label="Change folder" onClick={() => set("choose_folder", {})}>
+                      <svg viewBox="0 0 16 16" aria-hidden>
+                        <path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.4 1.5h5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z" />
+                      </svg>
+                    </button>
+                    <span className="bubble short" role="tooltip">
+                      Change folder
+                    </span>
+                  </span>
+                  <span className="path">{settings.copyFolder ?? init.defaultFolder}</span>
+                </div>
+                <div className="example">{EXAMPLE_FILE}</div>
+              </div>
+            )}
+            <div className="setting">
+              <span>
+                Network{" "}
+                <InfoTip text="Which connection downloads and uploads go through. Pick a different one than other computers syncing on the same network: each connection has its own download limit." />
+              </span>
+              <NetworkPicker value={settings.network} onChange={(name) => set("set_network", { name })} />
+            </div>
+          </section>
+          <p className="page-foot">{link(SETTINGS_DOC, "All settings explained")}</p>
+        </aside>
+      </div>
     </>
   );
 

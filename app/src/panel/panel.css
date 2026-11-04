@@ -43,12 +43,25 @@ button {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  /* A Minecraft scene, softened and darkened so the text in front stays easy to read; the
-     cards are dark glass over it, like the update notice. */
+  position: relative;
+  isolation: isolate;
+  background: var(--bg);
+}
+
+/* The page backdrop, as on magmamcsr.com (magma_design §12, Magma's components/page-backdrop.tsx): the
+   user's own screenshot, darkened and desaturated in the file itself (not blurred), fixed behind the
+   page, fading out downward along a curve but never to full black. The cards are plain dark, without
+   backdrop-filter. */
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background:
-    linear-gradient(rgba(10, 10, 10, 0.6), rgba(10, 10, 10, 0.86)),
-    url("/app-bg.webp") center / cover no-repeat,
-    var(--bg);
+    linear-gradient(rgba(10, 10, 10, 0.35), rgba(10, 10, 10, 0.6)),
+    url("/app-bg.webp") center top / cover no-repeat;
+  mask-image: linear-gradient(to bottom, #000 40%, rgb(0 0 0 / 0.85) 55%, rgb(0 0 0 / 0.65) 70%, rgb(0 0 0 / 0.48) 85%, rgb(0 0 0 / 0.35));
 }
 
 /* Title, status, master switch and close button on one line. */
@@ -133,7 +146,6 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(10, 10, 10, 0.85);
-  backdrop-filter: blur(14px);
 }
 
 .preview-title {
@@ -184,7 +196,6 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(23, 23, 23, 0.8);
-  backdrop-filter: blur(14px);
   counter-increment: step;
 }
 
@@ -203,7 +214,6 @@ h1 {
   border: 1px solid var(--input);
   border-radius: 14px;
   background: rgba(23, 23, 23, 0.85);
-  backdrop-filter: blur(14px);
 }
 
 .you label {
@@ -314,7 +324,6 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgba(23, 23, 23, 0.85);
-  backdrop-filter: blur(14px);
 }
 
 .card-head {
@@ -973,7 +982,6 @@ footer {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgba(23, 23, 23, 0.85);
-  backdrop-filter: blur(14px);
 }
 
 .button-row {

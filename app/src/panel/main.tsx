@@ -567,7 +567,7 @@ function RecentMatches({ me }: { me: Tracked }) {
               >
                 <span className={`outcome ${m.outcome}`}>{m.outcome === "won" ? "Won" : m.outcome === "lost" ? "Lost" : "Draw"}</span>
                 <span className="vs">
-                  vs{" "}
+                  <span className="vs-word">vs</span>
                   {m.opponentUuid && <Avatar uuid={m.opponentUuid} name={m.opponent ?? "?"} />}
                   {m.opponent ?? "?"}
                   {m.forfeited && <span className="muted"> · forfeit</span>}
@@ -579,9 +579,6 @@ function RecentMatches({ me }: { me: Tracked }) {
           ))}
         </ul>
       )}
-      <p className="card-foot">
-        Checked every 15 seconds. A match you just finished is usually analyzed within a minute.
-      </p>
     </section>
   );
 }

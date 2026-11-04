@@ -104,9 +104,11 @@ header {
   padding-top: 28px;
 }
 
+/* Four sizes, as on magmamcsr.com (dense pages): title 24, subheading 16, body 14, note 12 with a muted
+   color; settings group titles 18. */
 h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
@@ -116,10 +118,6 @@ h1 {
 }
 
 /* ---- welcome ---- */
-
-.welcome h1 {
-  font-size: 26px;
-}
 
 .lead {
   margin: 10px 0 20px;
@@ -313,7 +311,7 @@ h1 {
 
 .card-title {
   margin: 0 0 10px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -403,10 +401,20 @@ h1 {
   font-size: 12px;
 }
 
+/* The whole row opens the analysis, so the label is only underlined on the row under the mouse. */
 .state.analyzed {
   color: var(--text);
-  text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.match:hover:not(:disabled) .state.analyzed {
+  text-decoration: underline;
+}
+
+/* "vs" only joins the words: the opponent is what matters. */
+.vs-word {
+  color: var(--muted);
+  font-weight: 400;
 }
 
 .state.uploading,
@@ -424,15 +432,13 @@ h2 {
   align-items: center;
   gap: 6px;
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text);
 }
 
-/* Two groups: replay sync, and the app itself. Their titles read as headings, unlike the
-   small uppercase labels inside a group. */
+/* Two groups: replay sync, and the app itself. Their titles are a size above the section titles
+   inside a group. */
 .group-head {
   display: flex;
   align-items: center;
@@ -443,7 +449,7 @@ h2 {
 
 .group-title {
   margin: 0;
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
@@ -528,13 +534,9 @@ h2 {
   border-radius: 6px;
 }
 
-/* The first player is checked every 15 seconds; the others in turn. */
-.row.first {
-  background: var(--secondary);
-}
-
+/* The first player is checked every 15 seconds; the others in turn. Said in the row, in the normal
+   color: it is what the order means, not a side note. */
 .first-note {
-  color: var(--muted);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -546,7 +548,7 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
 }
 
@@ -583,7 +585,7 @@ h2 {
 /* "Show all N players" under a folded list */
 .link.quiet.fold {
   margin: 6px 0 4px 26px;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* The full player list, over the page */
@@ -791,7 +793,7 @@ h2 {
 .example {
   margin: 0 0 8px 26px;
   color: var(--faint);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -849,7 +851,7 @@ footer {
   padding-top: 14px;
   border-top: 1px solid var(--line);
   color: var(--faint);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.5;
 }
 

@@ -328,6 +328,21 @@ h1 {
   color: var(--muted);
 }
 
+/* The player's face next to a name in a line of text: the tracked player, an opponent */
+.with-avatar,
+.vs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.with-avatar .avatar,
+.vs .avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+}
+
 .card-foot {
   margin: 10px 0 0;
   color: var(--faint);

@@ -29,6 +29,7 @@ type OwnMatch = {
   id: number;
   date: number;
   opponent: string | null;
+  opponentUuid: string | null;
   outcome: "won" | "lost" | "draw";
   forfeited: boolean;
   season: number | null;
@@ -519,7 +520,10 @@ function RecentMatches({ me }: { me: Tracked }) {
     <section className="card">
       <div className="card-head">
         <h2 className="card-title">Your recent matches</h2>
-        <span className="card-note">{me.nickname}</span>
+        <span className="card-note with-avatar">
+          <Avatar uuid={me.uuid} name={me.nickname} />
+          {me.nickname}
+        </span>
         <span className="spacer" />
         <CheckNow onChecked={load} />
       </div>
@@ -538,7 +542,9 @@ function RecentMatches({ me }: { me: Tracked }) {
               >
                 <span className={`outcome ${m.outcome}`}>{m.outcome === "won" ? "Won" : m.outcome === "lost" ? "Lost" : "Draw"}</span>
                 <span className="vs">
-                  vs {m.opponent ?? "?"}
+                  vs{" "}
+                  {m.opponentUuid && <Avatar uuid={m.opponentUuid} name={m.opponent ?? "?"} />}
+                  {m.opponent ?? "?"}
                   {m.forfeited && <span className="muted"> · forfeit</span>}
                 </span>
                 <span className="when">{ago(m.date)}</span>

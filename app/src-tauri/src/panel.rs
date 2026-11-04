@@ -266,6 +266,8 @@ pub struct OwnMatch {
     /// Unix seconds when it ended.
     date: i64,
     opponent: Option<String>,
+    /// For the opponent's avatar.
+    opponent_uuid: Option<String>,
     /// "won", "lost" or "draw" for the first player.
     outcome: &'static str,
     forfeited: bool,
@@ -306,10 +308,12 @@ pub async fn recent_own(webview: Webview, client: State<'_, Client>, store: Stat
             Some(w) if w == me.uuid => "won",
             Some(_) => "lost",
         };
+        let opponent = m.players.iter().find(|p| p.uuid != me.uuid);
         out.push(OwnMatch {
             id: m.id,
             date: m.date,
-            opponent: m.players.iter().find(|p| p.uuid != me.uuid).map(|p| p.nickname.clone()),
+            opponent: opponent.map(|p| p.nickname.clone()),
+            opponent_uuid: opponent.map(|p| p.uuid.clone()),
             outcome,
             forfeited: m.forfeited,
             season: m.season,

@@ -11,6 +11,7 @@ version after an update, and each GitHub release uses the same text.
   bar when the Store has a new version, installs it when it starts with Windows, and also when you
   quit it from the tray. Before, the Store waited until the app was not running, which for an app
   in the tray could be never.
+- "Your recent matches" shows the faces of you and each opponent next to the names.
 
 ## 0.2.3
 

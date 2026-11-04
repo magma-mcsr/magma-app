@@ -953,11 +953,12 @@ footer {
   text-align: center;
 }
 
-/* Settings and About: the list of pages, and the page right next to it, together at most 1280px wide
-   and centered (§10.1); the page keeps to 720px beside the list. */
+/* Settings and About: the list of pages and the page right next to it, centered together as one block.
+   1280px (§10.1) is only the most it may take: the block is as wide as it needs (list 180 + page 720 +
+   gaps), so the space is the same on both sides instead of all on the right. */
 .panel.with-nav {
   flex-direction: row;
-  padding-inline: max(0px, calc((100vw - 1280px) / 2));
+  padding-inline: max(0px, calc((100vw - 948px) / 2));
 }
 
 .panel.with-nav .page {

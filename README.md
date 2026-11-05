@@ -60,6 +60,8 @@ are still available and sends them to Magma for analysis.
   name" and "Turn off". This happens once: a name you remove or change is never added back.
   Without a name found, nothing is tracked until you type one.
 - Uploads each replay to Magma (`api.magmamcsr.com`) for analysis. **Analyses are public.**
+- Shows players' faces (in the player list and next to names in your recent matches) from
+  `minotar.net`, looked up by Minecraft UUID.
 - Every 6 hours, unless "Share sync statistics" is off in Settings, sends Magma
   (`api.magmamcsr.com`) a report: a random install ID made on first run and kept in the settings
   file, the app version, whether sync is on, and the UUIDs of the players in your list. It contains

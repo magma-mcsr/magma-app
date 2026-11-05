@@ -711,7 +711,7 @@ function Panel({ init }: { init: Init }) {
         <h1>Settings</h1>
       </header>
       {/* What the app does on this computer, then what it sends: the second is about trust, so it is its own
-          group and says what is sent in plain sight, not in a tooltip (magma_design §9.4). */}
+          group and says what is sent in plain sight, not in a tooltip. */}
       <section className="card">
         <h2 className="card-title">Startup</h2>
         <div className="setting">

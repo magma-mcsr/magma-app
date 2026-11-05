@@ -48,7 +48,7 @@ button {
   background: var(--bg);
 }
 
-/* The page backdrop, as on magmamcsr.com (magma_design §12, Magma's components/page-backdrop.tsx): the
+/* The page backdrop, as on magmamcsr.com: the
    user's own screenshot, darkened and desaturated in the file itself (not blurred), fixed behind the
    page, fading out downward along a curve but never to full black. The cards are plain dark, without
    backdrop-filter. */
@@ -110,7 +110,7 @@ header {
   padding: 0 24px 32px;
 }
 
-/* Page widths follow magma_design §10.1, like magmamcsr.com: the frame is at most 1280px (a "7xl"
+/* Page widths as on magmamcsr.com: the frame is at most 1280px (a "7xl"
    general page); inside it, a list of settings or matches keeps to a readable 720px. */
 .page {
   max-width: 720px;
@@ -750,7 +750,7 @@ h2 {
   font-size: 12px;
 }
 
-/* Axis label instead of an instruction sentence (see magma_design 2.4). */
+/* Axis label instead of an instruction sentence. */
 /* Every toggle is the same kind of row, whatever it controls. */
 .setting {
   display: flex;
@@ -759,7 +759,7 @@ h2 {
   min-height: 36px;
 }
 
-/* What a setting means, right under it (magma_design §9.4: what is sent is said in plain sight). */
+/* What a setting means, right under it, so what is sent is said in plain sight. */
 .setting-note {
   margin: 0 0 4px;
   color: var(--muted);
@@ -954,7 +954,7 @@ footer {
 }
 
 /* Settings and About: the list of pages and the page right next to it, centered together as one block.
-   1280px (§10.1) is only the most it may take: the block is as wide as it needs (list 180 + page 720 +
+   1280px is only the most it may take: the block is as wide as it needs (list 180 + page 720 +
    gaps), so the space is the same on both sides instead of all on the right. */
 .panel.with-nav {
   flex-direction: row;
